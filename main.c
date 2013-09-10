@@ -250,7 +250,7 @@ int main(int argc, char const *argv[])
 
     /* Init logging */
     logfile = (CONST_STRPTR)"JMAN:jcalc.log";
-#if 0
+#if 1
     if (EXIT_SUCCESS != jinit(J_DEBUG, J_USE_LOGFILE, logfile))
 #else
     if (EXIT_SUCCESS != jinit(J_NOTHING, J_USE_DEVNULL, logfile))
