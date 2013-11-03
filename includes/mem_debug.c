@@ -17,7 +17,20 @@
 
 #include "mem_debug.h"
 
+#define DEBUG 0
 #include <aros/debug.h>
+
+struct Patches patches[PATCH_last] = 
+{
+    {NULL, NULL, LIB_Exec, 0, LVO_AllocVec},
+    {NULL, NULL, LIB_Exec, 0, LVO_FreeVec},
+};
+
+STRPTR tskName = (STRPTR)"MyTaskName";
+static struct MEMDBG_reel *list = NULL;
+static ULONG count = 1; /* Start from "1" :) Allocations count for reporting purposes */
+static ULONG total = 0; /* total allocations byte count for reporting purposes */
+static BOOL saveOnDisk = FALSE; /* Save the log to disk (CSV format)? */
 
 exit_t MEMDBG_freeList(struct MEMDBG_reel *l)
 {
@@ -49,13 +62,25 @@ exit_t MEMDBG_printList(struct MEMDBG_reel **mylist)
 	
 	if (saveOnDisk == TRUE)
 	{
-		STRPTR logfile = (STRPTR)"JMAN:MEMDBG.log";
+		STRPTR logfile = (STRPTR)"RAM:MEMDBG.log";
 		/* See dos/dos.h for file opening modes */
 		if (NULL == (fp = Open(logfile, MODE_NEWFILE)))
 		{
 			printf("Could not open file %s\n", logfile);
 		}
 	}
+
+
+	sprintf(buf, "COUNT;SIZE;ADDR\n");
+	if (saveOnDisk == TRUE)
+	{
+		Write(fp, buf, strlen(buf));
+	}
+	else
+	{
+		RawPutChars((STRPTR)buf, strlen(buf));
+	}
+
 
 	while (NULL != l)
 	{
@@ -69,8 +94,10 @@ exit_t MEMDBG_printList(struct MEMDBG_reel **mylist)
 		total += l->size;
 
 		buf[0] = '\0';
-		sprintf(buf, ">[%d] At 0x%p: size=%d addr=0x%p -> 0x%p\n",
-				count, l, l->size, l->addr, l->next);
+		// sprintf(buf, ">[%d] At 0x%p: size=%d addr=0x%p -> 0x%p\n",
+		// 		count, l, l->size, l->addr, l->next);
+		sprintf(buf, "%d;%d;0x%p\n",
+				count, l->size, l->addr);
 
 		if (saveOnDisk == TRUE)
 		{
@@ -85,15 +112,15 @@ exit_t MEMDBG_printList(struct MEMDBG_reel **mylist)
 		count++;
 	}
 
-	if (count != 0)
-	{
-		D(bug("Why?"));
-		asm volatile("int $3");
-	}
+	// if (count != 0)
+	// {
+	// 	D(bug("Why? count:%d", count));
+	// 	asm volatile("int $3");
+	// }
 
 
 	buf[0] = '\0';
-	sprintf(buf, "Reporting memory usage: %d allocation(s), %d bytes\n", count, total);
+	sprintf(buf, "Reporting memory usage: %d unfreed allocation(s), %d bytes\n", count, total);
  
 	if (saveOnDisk == TRUE)
 	{
@@ -117,7 +144,7 @@ exit_t MEMDBG_remNodeFromList(struct MEMDBG_reel *list, STRPTR addr)
 	if (addr == NULL)
 	{
 		D(bug(">>> ERROR requested to remove NULL node\n"));
-		asm volatile("int $3");
+		// asm volatile("int $3");
 		return EXIT_FAILURE;
 	}
 
@@ -197,12 +224,6 @@ exit_t MEMDBG_addNodeToList(struct MEMDBG_reel *l, ULONG byteSize, APTR addr)
 		RawPutChars((STRPTR)buf, strlen(buf));
 		return EXIT_FAILURE;
 	}
-
-	// D(bug("[addNodeToList] Adding node: size=%d addr=0x%p (%s)\n", byteSize, addr, addr));
-
-	// Cosi' ci mette il puntatore
-	// Io vorrei la rappresentazione in stringa del suo indirizzo
-	// nuovo->addr = (STRPTR)addr;
 
 	nuovo->addr = addr;
 	nuovo->size = byteSize;
@@ -289,7 +310,6 @@ AROS_LH1(VOID, New_FreeVec,
 		// sprintf(_memoryBlock, "0x%p", memoryBlock);
 
 		// D(bug("[MEM_DEBUG] FreeVec removing node: addr=0x%p\n", memoryBlock));
-
     	if (EXIT_FAILURE == MEMDBG_remNodeFromList(list, memoryBlock))
     	{
     		D(bug("[MEM_DEBUG] ERROR memoryBlock is NULL!!! 0x%p (task=%s)\n", memoryBlock, tsk->tc_Node.ln_Name));
@@ -301,7 +321,7 @@ AROS_LH1(VOID, New_FreeVec,
     AROS_LIBFUNC_EXIT
 }
 
-exit_t MEMDBG_start_tracing(BOOL log)
+exit_t _MEMDBG_start_tracing(BOOL log)
 {
 	/* Setting up logging */
 	saveOnDisk = log;
@@ -336,7 +356,7 @@ exit_t MEMDBG_start_tracing(BOOL log)
 	return EXIT_SUCCESS;
 }
 
-exit_t MEMDBG_stop_tracing()
+exit_t _MEMDBG_stop_tracing()
 {
  	// restore original functions
  	int i;
@@ -357,13 +377,13 @@ exit_t MEMDBG_stop_tracing()
     return EXIT_SUCCESS;
 }
 
-exit_t MEMDBG_report_tracing()
+exit_t _MEMDBG_report_tracing()
 {
 	// report
 	MEMDBG_printList(&list);
 
 	char buf[BUFSIZE]; buf[0] = '\0';
-	sprintf(buf, "[MEM_DEBUG] Reporting memory usage: %d allocation(s), %d bytes\n", count, total);
+	sprintf(buf, "[MEM_DEBUG] Reporting memory usage: %d unfreed allocation(s), %d bytes\n", count, total);
     RawPutChars((STRPTR)buf, strlen(buf));
 
     return EXIT_SUCCESS;

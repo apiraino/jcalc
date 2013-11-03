@@ -1,15 +1,13 @@
 CC=$(AROS_BIN)/i386-aros-gcc
 # -D__REXXSYSLIB_STDLIBBASE__ is for having RexxSysBase of type Library (see proto/rexxsyslib.h)
-CFLAGS_DBG= -Wall -Wextra -D__AROS__ -m32 -fno-stack-protector -D__REXXSYSLIB_STDLIBBASE__ -g
-CFLAGS_OPT= -Wall -Wextra -D__AROS__ -m32 -fno-stack-protector -D__REXXSYSLIB_STDLIBBASE__
-#CFLAGS= -I$(AROS_SDK)/include -Wall -Wextra -D__AROS__ -m32 -fno-stack-protector -g
+CFLAGS= -Wall -Wextra -D__AROS__ -m32 -fno-stack-protector -D__REXXSYSLIB_STDLIBBASE__ #-g
 LIBS=-lmui -llocale
 SRCDIR=src
 DOCS=../docs
 DSTDIR=../bin
 DISTDIR=/home/jman/Desktop
 RUNDIR=/home/jman/aros/jman
-RUNDIRDBG=/home/jman/aros/AROS-20130406-source/bin/linux-i386/AROS/jman
+RUNDIRDBG=/home/jman/aros/AROS-20130927-source/bin/linux-i386/AROS/jman
 
 OBJ	=	about.o	\
 		rexx.o \
@@ -20,19 +18,19 @@ OBJ	=	about.o	\
 all: jcalc
 
 jcalc.o: jcalc.c jcalc.h
-	@$(CC) $(CFLAGS_DBG) -c jcalc.c -o $@
+	@$(CC) $(CFLAGS) -c jcalc.c -o $@
 
 about.o: about.h
-	@$(CC) $(CFLAGS_DBG) -c about.c -o $@
+	@$(CC) $(CFLAGS) -c about.c -o $@
 
 display.o: display.h
-	@$(CC) $(CFLAGS_DBG) -c display.c -o $@
+	@$(CC) $(CFLAGS) -c display.c -o $@
 
 rexx.o: rexx.h
-	@$(CC) $(CFLAGS_DBG) -c rexx.c -o $@
+	@$(CC) $(CFLAGS) -c rexx.c -o $@
 
 main.o: main.c
-	@$(CC) $(CFLAGS_DBG) -c main.c -o $@
+	@$(CC) $(CFLAGS) -c main.c -o $@
 
 update_build:
 	sh update_build.sh
@@ -41,16 +39,24 @@ update_build:
 
 jcalc: $(OBJ)
 	@rm -f $(DSTDIR)/$@ $(RUNDIR)/$@
-	@$(CC) $(CFLAGS_DBG) -o $(DSTDIR)/$@ $(OBJ) $(LIBS)
-	@cp $(DSTDIR)/$@ $(RUNDIRDBG)/jcalc
+	@$(CC) $(CFLAGS) -o $(DSTDIR)/$@ $(OBJ) $(LIBS)
+	@cp $(DSTDIR)/$@ $(RUNDIR)/jcalc
 	@cp ../$@.info $(RUNDIR)/$@.info
 
 pack: clean jcalc
-	zip -rj ../old/jcalc_bXXXX.zip $(DSTDIR)/jcalc $(RUNDIR)/jcalc.info $(DOCS)/README.txt $(DOCS)/CHANGELOG *.h *.c libs/ rexx/
+	zip -r ../old/jcalc_bXXXX.zip *.h *.c Makefile
+	zip -r ../old/jcalc_bXXXX.zip libs/ rexx/ batch/ includes/
+	zip -j ../old/jcalc_bXXXX.zip $(RUNDIR)/jcalc.info $(DOCS)/README.txt $(DOCS)/CHANGELOG
 
 dist: jcalc
 	rm -f $(DISTDIR)/jcalc.zip
-	zip -j $(DISTDIR)/jcalc.zip $(DSTDIR)/jcalc $(RUNDIR)/jcalc.info $(DOCS)/README.txt $(DOCS)/CHANGELOG libs/ rexx/
+	zip -j $(DISTDIR)/jcalc.zip $(DSTDIR)/jcalc $(RUNDIR)/jcalc.info $(DOCS)/README.txt $(DOCS)/CHANGELOG
+	zip -r $(DISTDIR)/jcalc.zip libs/ rexx/ batch/
+
+vrfylog:
+	rm -f $(DSTDIR)/$@ $(RUNDIR)/$@
+	$(CC) $(CFLAGS) vrfylog.c -o $(DSTDIR)/$@
+	cp $(DSTDIR)/$@ $(RUNDIR)/
 
 clean:
 	rm -f $(OBJ) $(DSTDIR)/jcalc

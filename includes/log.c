@@ -6,15 +6,12 @@
  */
 
 #include "common.h"
-#include <unistd.h>
-#include "dos/datetime.h"
+#include "log.h"
 
 struct DateTime *dt;
 struct DateStamp *ds;
 struct ClockData cd;
 struct Task *task;
-
-#include "log.h"
 
 #define MAXLOGBUF 4096
 #define DATESIZE 32
@@ -35,22 +32,46 @@ exit_t fail(CONST_STRPTR title, int code, CONST_STRPTR message)
     return EXIT_FAILURE;
 }
 
-void jshutdown()
+// void jshutdown()
+// {
+// 	// printf("TODO Logging shut down\n");
+// }
+
+// static exit_t jrealloc(VOID)
+// {
+// 	logbuffer = AllocVec(MAXLOGBUF, MEMF_CLEAR);
+// 	if (logbuffer == NULL)
+// 	{
+// 		printf("Fatal error occurred while allocating buffer\n");
+// 		return EXIT_FAILURE;
+// 	}
+
+// 	FreeVec(logbuffer); logbuffer = NULL;
+// 	return EXIT_SUCCESS;
+// }
+
+static void jshutdown(void)
 {
-	// printf("TODO Logging shut down\n");
+	if (logbuffer)
+	{
+		free(logbuffer); logbuffer = NULL;
+	}
 }
 
-static exit_t jrealloc(VOID)
+static int jrealloc(void)
 {
-	logbuffer = AllocVec(MAXLOGBUF, MEMF_ANY);
-	if (logbuffer == NULL)
+	if (NULL != (logbuffer = malloc(MAXLOGBUF)))
 	{
-		printf("Fatal error occurred while allocating buffer\n");
-		return EXIT_FAILURE;
+		// if (NULL != (dupbuffer = malloc(MAXLOGBUF)))
+		{
+			*logbuffer = 0;
+			// *dupbuffer = 0;
+			return EXIT_SUCCESS;
+		}
+		free(logbuffer); logbuffer = NULL;
 	}
-
-	FreeVec(logbuffer);
-	return EXIT_SUCCESS;
+	fprintf(stderr, "cannot allocate log buffer");
+	return EXIT_FAILURE;
 }
 
 int jsetfile(CONST_STRPTR logfile)
@@ -176,7 +197,9 @@ int jsetmode(JDESTINATION mode)
 		case J_USE_STDOUT:
 		{
 			/* if we use STDOUT, we must make it UNBUFFERED! */
-			setvbuf(stdout, NULL, _IONBF, 0);
+			/* Apparently this is not necessary ... */
+			// setvbuf(stdout, NULL, _IONBF, 0);
+			// SetVBuf(stdout, NULL, BUF_NONE, -1);
 			break;
 		}
 		case J_USE_STDERR:
@@ -233,22 +256,44 @@ int jinit(JLEVEL level, JDESTINATION mode, CONST_STRPTR tag)
 	return EXIT_SUCCESS;
 }
 
-static inline char *myctime(void)
+static inline void _myctime(void)
 {
-	ds = AllocVec(sizeof(struct DateStamp), MEMF_ANY);
+	printf("[LOGGER] Invoked myctime\n");
+}
+
+static inline void myctime(void)
+{
+	// printf("[TEST] About to alloc DateStamp\n");
+	ds = AllocVec(sizeof(struct DateStamp), MEMF_CLEAR);
+	if (!ds)
+		printf("[LOGGER] Error allocating DateStamp\n");
 	ds->ds_Days = 0;
 	ds->ds_Minute = 0;
 	ds->ds_Tick = 0;
 
 	if (!DateStamp(ds))
-		printf("Error generatoing the DateStamp\n");
+		printf("[LOGGER] Error generating the DateStamp\n");
 
 	STRPTR _day, _date, _time;
-	_day = AllocVec(LEN_DATSTRING, MEMF_ANY);
-	_date = AllocVec(LEN_DATSTRING, MEMF_ANY);
-	_time = AllocVec(LEN_DATSTRING, MEMF_ANY);
+	// printf("[TEST] About to alloc _day\n");
+	_day = AllocVec(LEN_DATSTRING, MEMF_CLEAR);
+	if (!_day)
+		printf("[LOGGER] Error allocating _day\n");
 
-	dt = AllocVec(sizeof(struct DateTime), MEMF_ANY);
+	// printf("[TEST] About to alloc _date\n");
+	_date = AllocVec(LEN_DATSTRING, MEMF_CLEAR);
+	if (!_date)
+		printf("[LOGGER] Error allocating _date\n");
+	
+	// printf("[TEST] About to alloc _time\n");
+	_time = AllocVec(LEN_DATSTRING, MEMF_CLEAR);
+	if (!_time)
+		printf("[LOGGER] Error allocating _time\n");
+	
+	// printf("[TEST] About to alloc _dt\n");
+	dt = AllocVec(sizeof(struct DateTime), MEMF_CLEAR);
+	if (!dt)
+		printf("[LOGGER] Error allocating dt\n");
 	dt->dat_Stamp = *ds;
 	dt->dat_Format = FORMAT_DOS;
 	dt->dat_Flags = 0; // DTF_SUBST;
@@ -257,7 +302,7 @@ static inline char *myctime(void)
 	dt->dat_StrTime = _time;
 
 	if (!DateToStr(dt))
-		printf("Error generating DateTime\n");
+		printf("[LOGGER] Error generating DateTime\n");
 
     Amiga2Date(dt->dat_Stamp.ds_Days * 60 * 60 * 24 + 
                dt->dat_Stamp.ds_Minute * 60 +
@@ -272,30 +317,25 @@ static inline char *myctime(void)
 				cd.min,
 				cd.sec);
 
+	FreeVec(dt);
 	FreeVec(_day);
 	FreeVec(_date);
 	FreeVec(_time);
+	FreeVec(ds);
 
-	return datestamp;
+	// return datestamp;
 }
 
 int __jprintf(char *filename, long srcline, JLEVEL level, const char *fmt, ...)
 {
 	size_t i;
-	logbuffer = AllocVec(MAXLOGBUF, MEMF_ANY);
-	if (logbuffer == NULL)
-	{
-		printf("Error while allocating buffer\n");
-		jshutdown();
-	}
 
 	char *logp = logbuffer;
 	LONG openmode = MODE_OLDFILE;
-	#define DEBUGBUFFERSIZE 10240 /* 10 kb */
-	static char DebugBuffer[DEBUGBUFFERSIZE];
 
+	static char DebugBuffer[DEBUGBUFFERSIZE]; DebugBuffer[0] = '\0';
 	if ((level & J_LEVEL) > loglevel)
-		return 1;
+		return EXIT_FAILURE;
 
 	myctime();
 
@@ -323,6 +363,5 @@ int __jprintf(char *filename, long srcline, JLEVEL level, const char *fmt, ...)
 		||
 		((level & J_DESTINATION) == J_USE_CONSOLE)) ? logp : DebugBuffer, openmode, loglevel & J_DESTINATION);
 
-	FreeVec(logbuffer);
 	return EXIT_SUCCESS;
 }

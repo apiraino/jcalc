@@ -16,6 +16,10 @@
 #include <proto/asl.h>
 #include <proto/intuition.h>
 
+/* DOS */
+#include <dos/stdio.h>
+#include <dos/datetime.h>
+
 /* MsgPort */
 #include <proto/alib.h>
 #include <exec/ports.h>
@@ -36,14 +40,16 @@
 #include <limits.h>
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <devices/rawkeycodes.h>
 #include <proto/keymap.h>
 
 #include <SDI/SDI_hook.h>
 
-#define DEBUG 1 // 0 = do not print D(bug())
-#define GUI_DEBUG 0 // 0 = do not show frames around groups
+#define DEBUG 0 		// 0 = do not print D(bug()) macros and logging
+#define ENABLE_MEMDBG 0	// 0 = do not trace memory usage
+#define GUI_DEBUG 0 	// 0 = do not show frames around groups
 
 #ifdef __amigaos4__
 	#if DEBUG

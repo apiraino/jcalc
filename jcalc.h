@@ -66,6 +66,7 @@
 #define INSMODE		1
 #define OPMODE		2
 #define CALCMODE	4
+
 #define PI 			"3.141592"
 
 enum

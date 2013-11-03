@@ -23,6 +23,7 @@ static IPTR aboutNew(struct IClass *cl,Object *obj,struct opSet *msg)
     memset(&temp, 0, sizeof(temp));
 
     STRPTR aboutText = AllocVec(sizeof(STRPTR)*1024, MEMF_CLEAR);
+    // printf("[aboutNew] Allocated %d at 0x%p\n", sizeof(STRPTR)*1024, aboutText);
 
     snprintf((char *)aboutText, 1024,
         "\33cjCalc %s (build: %d)\nCopyright (C) 2012-2013\n\nDistributed under the terms of the AROS Public License 1.1\nhttp://aros.sourceforge.net/license.html",

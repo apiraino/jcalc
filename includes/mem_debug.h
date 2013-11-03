@@ -1,3 +1,4 @@
+#include "common.h"
 #include <proto/arossupport.h> /* for RawPutChars */
 
 enum {LIB_Exec, LIB_last};
@@ -21,11 +22,8 @@ struct Patches
     LONG libidx;
     struct Library *lib;
     LONG lvo;
-} patches[PATCH_last] = 
-{
-    {NULL, NULL, LIB_Exec, 0, LVO_AllocVec},
-    {NULL, NULL, LIB_Exec, 0, LVO_FreeVec},
 };
+extern struct Patches patches[PATCH_last];
 
 struct MEMDBG_reel
 {
@@ -35,22 +33,34 @@ struct MEMDBG_reel
 };
 
 struct Task *t;
-STRPTR tskName = (STRPTR)"MyTaskName"; // replace this value in your code
-static struct MEMDBG_reel *list = NULL;
-static ULONG count = 0; /* allocations count for reporting purposes */
-static ULONG total = 0; /* total allocations byte count for reporting purposes */
-static BOOL saveOnDisk = FALSE;
+extern STRPTR tskName; // replace this value in your code
 
-/* "public" function calls */
+/* function calls */
 
 #ifndef ENABLE_MEMDBG
 #define ENABLE_MEMDBG 0
 #endif
 
-exit_t MEMDBG_start_tracing(BOOL);
-exit_t MEMDBG_stop_tracing();
-exit_t MEMDBG_report_tracing();
-exit_t MEMDBG_printList();
-exit_t MEMDBG_freeList();
+#if ENABLE_MEMDBG == 1
+    // public functions
+    #define MEMDBG_start_tracing(x) _MEMDBG_start_tracing(x)
+    #define MEMDBG_stop_tracing()    _MEMDBG_stop_tracing()
+    #define MEMDBG_report_tracing()  _MEMDBG_report_tracing()
+
+    // private functions
+    exit_t _MEMDBG_start_tracing(BOOL);
+    exit_t _MEMDBG_stop_tracing();
+    exit_t _MEMDBG_report_tracing();
+    
+    exit_t MEMDBG_printList();
+    exit_t MEMDBG_freeList();
+#else
+    #define MEMDBG_start_tracing(x) (void) EXIT_SUCCESS
+    #define MEMDBG_stop_tracing() (void) EXIT_SUCCESS
+    #define MEMDBG_report_tracing() (void) EXIT_SUCCESS
+    
+    exit_t MEMDBG_printList();
+    exit_t MEMDBG_freeList();
+#endif
 
 #define BUFSIZE 100

@@ -1,8 +1,8 @@
 #ifndef __APP_H__
 #define __APPH__
 
-#define VERSTAG		"\0$VER: jCalc 0.3 (10.3.2013)"
-#define VERSION		"0.3"
+#define VERSTAG		"\0$VER: jCalc 0.4 (06.10.2013)"
+#define VERSION		"0.4"
 
 Object *app, *window, *jcalc_win;
 

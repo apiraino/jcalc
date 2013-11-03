@@ -27,16 +27,15 @@
 #define ENABLE_RT 0
 #include <aros/rt.h>
 
-// TODO
-#define ENABLE_MEMDBG 0
-#include "includes/mem_debug.c"
+// #define ENABLE_MEMDBG 0
+#include "includes/mem_debug.h"
 
 #include "app.h"
 #include "jcalc.h"
 #include "about.h"
 #include "rexx.h"
 
-// #include <aros/debug.h>
+#include <aros/debug.h>
 
 static void getLocale(void)
 {
@@ -70,6 +69,7 @@ exit_t addNodeToList(struct inputList *list, STRPTR val)
 	// jdebug("[addNodeToList] New element (%s) position: 0x%p", val, l);
 
 	struct inputList *nuovo = AllocVec(sizeof(struct inputList), MEMF_CLEAR);
+	// printf("[addNodeToList] Allocated %d at 0x%p\n", sizeof(struct inputList), nuovo);
 	nuovo->line = StrDup(val);
 	nuovo->next	= NULL;
 	l->next = nuovo;
@@ -234,26 +234,26 @@ HOOKPROTONHNO(rexxHookClick, void, APTR *data UNUSED)
 }
 MakeStaticHook(rexxHook, rexxHookClick);
 
-
 int main(int argc, char const *argv[])
 {
 	t = FindTask(NULL);
 	t->tc_Node.ln_Name = "JCALC";
-	tskName = (STRPTR)t->tc_Node.ln_Name;
+	STRPTR tskName = (STRPTR)t->tc_Node.ln_Name;
 	struct RexxMsg *msg;
 
+	MEMDBG_start_tracing(TRUE);
+
 	// RT_Init();
-	// MEMDBG_start_tracing(FALSE);
 
 	BOOL toggleSaveAsCsv = FALSE;
 	STRPTR inputFileName = 0;
 
     /* Init logging */
-    logfile = (CONST_STRPTR)"JMAN:jcalc.log";
-#if 1
+    logfile = (CONST_STRPTR)"RAM:jcalc.log";
+#if DEBUG
     if (EXIT_SUCCESS != jinit(J_DEBUG, J_USE_LOGFILE, logfile))
 #else
-    if (EXIT_SUCCESS != jinit(J_NOTHING, J_USE_DEVNULL, logfile))
+    if (EXIT_SUCCESS != jinit(J_CONNECT, J_USE_STDOUT, logfile))
 #endif
     {
     	fail((CONST_STRPTR)"JCALC", 101, (CONST_STRPTR)"jinit failed, aborting");
@@ -321,6 +321,7 @@ int main(int argc, char const *argv[])
     			{
 	    			int len = strlen(argv[i+1]);
 	    			inputFileName = AllocVec(sizeof(STRPTR)*len, MEMF_CLEAR);
+	    			// printf("[main] Allocated %d at 0x%p\n", sizeof(STRPTR)*len, inputFileName);
 	    			if (!inputFileName)
 	    			{
 				        jerror("Error allocating memory for inputFileName\n");
@@ -335,8 +336,9 @@ int main(int argc, char const *argv[])
     		}
     	}
     }
-    jwarning(">>> Logging as %d", toggleSaveAsCsv);
-    jwarning(">>> Input file is '%s'", inputFileName);
+    jdebug(">>> Logging as %d", toggleSaveAsCsv);
+    if (inputFileName)
+    	printf("Parsing input file: '%s'\n", inputFileName);
 
 	// set comma character according to Locale
 	getLocale();
@@ -548,16 +550,17 @@ int main(int argc, char const *argv[])
 		{
 			APTR *fp;
 			struct inputList *inputFile = AllocVec(sizeof(struct inputList), MEMF_CLEAR);
+			// printf("[main] Allocated %d at 0x%p\n", sizeof(struct inputList), inputFile);
 
 			if (NULL == (fp = Open(inputFileName, MODE_OLDFILE)))
 			{
-				jerror("Could not open file '%s'", inputFileName);
+				jerror("[INPUTFILE] Could not open file '%s'", inputFileName);
 			}
 			else
 			{
-				jdebug(" XXX Will parse file '%s'", inputFileName);
+				// jdebug("[INPUTFILE] Will parse file '%s'", inputFileName);
 				parseInputFile(fp, inputFile);
-				jdebug(" XXX Finished parsing file");
+				// jdebug("[INPUTFILE] Finished parsing file");
 				Close(fp);
 			}
 
@@ -567,32 +570,40 @@ int main(int argc, char const *argv[])
 			killMe = 1;
 			struct inputList *l = inputFile;
 			STRPTR ret = AllocVec(sizeof(STRPTR)*30, MEMF_CLEAR);
+			// printf("[main] Allocated %d at 0x%p\n", sizeof(STRPTR)*30, ret);
 			while(l != NULL)
 			{
 				// jdebug("[%d] parseCmdString Ready to iterate?", i);
-				jdebug("[%d] XXX Will send to parseCmdString line:'%s'", i, l->line);
+				jdebug("[%d] [INPUTFILE] Will send to parseCmdString line:'%s'", i, l->line);
 				if (EXIT_SUCCESS != parseCmdString((STRPTR)l->line, ret))
 				{
 					jerror("Error running parseCmdString on string:'%s'", l->line);
 				}
-				jdebug("[%d] XXX parseCmdString returned with (0x%p) '%s'", i, ret, ret);
+				jdebug("[%d] [INPUTFILE] parseCmdString returned with (0x%p) '%s'", i, ret, ret);
 
 				// if ret is inf o un errore, break
+				if (0 == strcmp((char *)ret, "+inf"))
+				{
+					jdebug("[%d] [INPUTFILE] Line %s provoked an error, bail out now!", i, l->line);
+					printf("ERROR: Line [%s] cannot be processed.\n", l->line);
+					printf("Exiting!\n");
+					break;
+				}
 
 				l = l->next;
 				i++;
 			}
 
-			jdebug("parseCmdString finished with (0x%p) '%s'", ret, ret);
+			jdebug("[INPUTFILE] parseCmdString finished with (0x%p) '%s'", ret, ret);
 			if (0 == strlen((char *)ret))
 			{
-				jdebug("ret is empty (%s)\n", ret);
+				// jdebug("ret is empty (%s)\n", ret);
 				strncpy((char *)ret, "NaN", 3+1);
 			}
-			else
-			{
-				jdebug("ret is not empty (%s)\n", ret);
-			}
+			// else
+			// {
+			// 	jdebug("ret is not empty (%s)\n", ret);
+			// }
 
 			printf("RIS: %s\n", ret);
 			if (ret) { FreeVec(ret); ret = NULL; }
@@ -664,6 +675,7 @@ int main(int argc, char const *argv[])
 					        sizeof(struct ArexxCmdParams) + 	// memory for struct itself
 					        sizeof(STRPTR),	                	// memory for "command"
 					        MEMF_CLEAR);
+					    // printf("[main] Allocated %d at 0x%p\n", sizeof(struct ArexxCmdParams) + sizeof(STRPTR), command);
 
                     	ValidateArexxCmdParams((STRPTR)msg->rm_Args[0], command);
                     	// PrintArexxCmdParams(command);
@@ -712,8 +724,8 @@ int main(int argc, char const *argv[])
 
 	// RT_Exit();
 
-	// MEMDBG_stop_tracing();
-	// MEMDBG_report_tracing();
+	MEMDBG_stop_tracing();
+	MEMDBG_report_tracing();
 
 	return EXIT_SUCCESS;
 }

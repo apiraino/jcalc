@@ -83,6 +83,7 @@ void rexxquit (struct RexxMsg *msg, struct ArexxCmdParams *command UNUSED)
 void rexxsendkeys (struct RexxMsg *msg, struct ArexxCmdParams *command)
 {
     STRPTR ret = AllocVec(sizeof(STRPTR)*30, MEMF_CLEAR);
+    // printf("[rexxsendkeys] Allocated %d at 0x%p\n", sizeof(STRPTR)*30, ret);
 
     if (EXIT_SUCCESS != parseCmdString(command->cmd, ret))
     {
@@ -111,7 +112,7 @@ void rexxsendkeys (struct RexxMsg *msg, struct ArexxCmdParams *command)
 
 
 
-
+#if 0
     if (command->cmd)
     {
         jdebug("[AREXX] rexxsendkeys cmd is '%s'", command->cmd);
@@ -205,6 +206,7 @@ void rexxsendkeys (struct RexxMsg *msg, struct ArexxCmdParams *command)
     msg->rm_Result2 = (LONG) CreateArgstring( ret, strlen((char *)ret) );
     ReplyMsg((struct Message *)msg);
     FreeVec(ret); ret = NULL;
+#endif
 }
 
 #if 0
@@ -331,6 +333,7 @@ exit_t ValidateArexxCmdParams(STRPTR _string, struct ArexxCmdParams *_amp)
     struct ArexxCmdParams *amp = _amp;
 
     amp->cmd = AllocVec(sizeof(STRPTR)*strlen((char *)str), MEMF_CLEAR);
+    // printf("[rexxsendkeys] Allocated %d at 0x%p\n", sizeof(STRPTR)*strlen((char *)str), amp->cmd);
     if (amp->cmd == NULL)
     {
         jerror("[AREXX] Failed memory allocation for cmd!");

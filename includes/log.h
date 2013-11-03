@@ -17,7 +17,7 @@
 CONST_STRPTR logfile;
 
 typedef enum	// warning levels:
-				// I will log *up to* the level I choose
+				// I will print logs *up to* the level choosen
 {
 	J_NEVER				= -1,
 	J_CURRENT_LEVEL		= -1,
@@ -46,6 +46,10 @@ typedef enum	// where the log will be directed (tipically 40,20,10)
 } JDESTINATION;
 
 #define	J_DESTINATION	0x70	/* Power of 2 minus 1 */
+
+#ifndef DEBUGBUFFERSIZE
+#define DEBUGBUFFERSIZE 10240 /* 10 kb */
+#endif
 
 #endif /* __JLOG_STRUCT__ */
 

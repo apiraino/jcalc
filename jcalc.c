@@ -20,6 +20,8 @@
 #include "includes/log.h"
 #endif
 
+// #define jdebug(...) {}
+// #define jwarning(...) {}
 // #define jwarning(x) printf(x)
 // #define jwarning(...) printf("--\n");
 // #define jerror(x) printf(x)
@@ -97,8 +99,8 @@ exit_t max_decimals(STRPTR *str)
 	/*
 		TODO
 
-		- impostare MAX_DECIMALS su decimali in input
-		 (non deve superare cmq MAX_DISPLAY_FIGURES)
+		- set MAX_DECIMALS input
+		 (must not be higher than MAX_DISPLAY_FIGURES anyway)
 	*/
 
 	int len = strlen((char *)*str);
@@ -126,6 +128,7 @@ exit_t removeTrailingZeroes(STRPTR *str)
 {
 	// FIXME removeTrailingZeroes should only remove zeroes! Check the code
 
+	// D(bug("[removeTrailingZeroes] TAG MEMORY check: '%s' 0x%p\n", *str, *str));
 	jdebug("[removeTrailingZeroes] starts with: '%s' (comma is %s)", *str, comma);
 
 	/* Is there really a comma? */
@@ -207,7 +210,7 @@ exit_t convertComma(STRPTR *str)
 			strncpy(buffer, (char *)*str, p-(char *)*str);
 			buffer[p-(char *)*str] = '\0';
 			sprintf(buffer+(p-(char *)*str), "%s%s", comma, p+strlen((char *)"."));
-			*str	= (STRPTR)strdup(buffer);
+			*str	= StrDup((STRPTR)buffer);
 			jdebug("After conversion: %s", *str);
 	    }
 		else
@@ -256,14 +259,14 @@ exit_t convertDisplay(STRPTR *str, BYTE old_base, BYTE *new_base)
 	// tmpstr[0] = '\0';
 	long unsigned lu;
 
-	jwarning("[convertDisplay] Put value from %s", *str);
+	jdebug("[convertDisplay] Put value from %s", *str);
 
 	switch(*new_base)
 	{
 		case 2: // converting to a string representing the binary
 		{
 			lu	= strtol((char *)*str, NULL, old_base);
-			jwarning("[convertDisplay] %s now is %lu", *str, lu);
+			jdebug("[convertDisplay] %s now is %lu", *str, lu);
 			int precision = 32;
 			int n	= 0;
 			int exp	= precision - 1;
@@ -308,11 +311,11 @@ exit_t convertDisplay(STRPTR *str, BYTE old_base, BYTE *new_base)
 			snprintf((char *)*str, buf, "%X", (unsigned int)lu);
 			break;
 		default:
-			jwarning("[convertDisplay] Base was not recognized: %d", old_base);
+			jdebug("[convertDisplay] Base was not recognized: %d", old_base);
 			break;
 
 	}
-	jwarning("[convertDisplay] ... to %s[lu=%lu] from base=%d to base=%d", *str, lu, old_base, *new_base);
+	jdebug("[convertDisplay] ... to %s[lu=%lu] from base=%d to base=%d", *str, lu, old_base, *new_base);
 
 	return EXIT_SUCCESS;
 }
@@ -353,6 +356,7 @@ static IPTR doCalcWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doCa
     jdebug("[doCalcWrapper] with clickedReturnBtn=%d", msg->clickedReturnBtn);
 
 	STRPTR res = AllocVec(sizeof(STRPTR)*50, MEMF_CLEAR);
+	// printf("[doCalcWrapper] Allocated %d at 0x%p\n", sizeof(STRPTR)*50, res);
 	if (res == NULL)
 	{
 		jerror("[doOpWrapper] Failed memory allocation!");
@@ -366,7 +370,7 @@ static IPTR doCalcWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doCa
     // 	fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"[doCalcWrapper] Failed allocation!\n");
     // }
 
-    jwarning("[doCalcWrapper] mode is %d", myData->mode);
+    jdebug("[doCalcWrapper] mode is %d", myData->mode);
 
 	if (isInsertMode(myData->mode))
 	{
@@ -376,32 +380,36 @@ static IPTR doCalcWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doCa
 			Unfortunately here is used when I press "=" and changing this has
 			a huge impact on the core code
 
-			Il recupero della stringa dal display per metterlo in cs->n1 o cs->n2
-			viene fatto in doOpWrapper. Purtroppo quando premo "=" vado direttamente
-			in doCalcWrapper e se cs->n2 non è già popolato c'e' del codice duplicato
-			per farlo (solo in INSERTMODE).	Proviamo a far andare anche "=" in
-			doOpWrapper.
+			Recovering the string from the display top be put into cs->n1 or cs->n2 
+			is done in doCalcWrapper or doOpWrapper. Unfortunately when I click "="
+			I'm triggering directly doCalcWrapper and if cs->n2 is not yet populated
+			there must be some code duplicated to populate it (only in INSERTMODE).
+
 		*/
 
-		// Questo metodo dovrebbe semplicemente prendere il display e metterlo in cs->n1 oppure cs->n2
-		// la decisione viene presa qui
+		// This method should simply get the display and put into cs->n1 or cs->n2
+		// This decision is taken here
 // #warning replaced with displayStr
 		// STRPTR currdisplay	= (STRPTR)XGET(myData->display, MUIA_Text_Contents);
-		STRPTR currdisplay	= myData->displayStr;
-		jwarning("[doCalcWrapper,isInsertMode] Invoking MUIM_getDisplay with src=%s with base=%d",
-				currdisplay, myData->cs->base);
+		// STRPTR currdisplay	= StrDup(myData->displayStr);
+		// jwarning("[doCalcWrapper,isInsertMode] Invoking MUIM_getDisplay with src=%s with base=%d",
+		// 		currdisplay, myData->cs->base);
 
-		// FIXME In base a cosa decido di mettere in myData->cs->n2 il display?
-
-		if (TRUE != DoMethod(obj, MUIM_getDisplay, currdisplay, &myData->cs->n2, myData->cs->base))
+		// FIXME Based on what do I decide to populate myData->cs->n2?
+		if (TRUE != DoMethod(obj, MUIM_getDisplay, myData->displayStr, &myData->cs->n2, myData->cs->base))
 		{	
-			jwarning("[doCalcWrapper,isInsertMode] Error retrieving display '%s'", currdisplay);
+			jdebug("[doCalcWrapper,isInsertMode] Error retrieving display '%s'", myData->displayStr);
 		}
 		else
 		{
 			// FIXME the string "9876543210" is converted to 9876543209.999999
 			jdebug("[doCalcWrapper,isInsertMode] getDisplay returned %f into cs->n2", myData->cs->n2);
 		}
+
+		// if (currdisplay)
+		// {
+		// 	FreeVec(currdisplay); currdisplay = NULL;
+		// }
 
 		if (EXIT_SUCCESS == doCalc(myData))
 		{
@@ -428,7 +436,7 @@ static IPTR doCalcWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doCa
 		    {
 				// Print this line in history reel only if user clicked ENTER
 				DoMethod(obj, MUIM_historyListInsert, myData->cs->n2, myData->cs->op, MUIV_List_Insert_Bottom);
-				jwarning("[doCalcWrapper,isInsertMode] Will insert a linebreak!");
+				jdebug("[doCalcWrapper,isInsertMode] Will insert a linebreak!");
 			
 				DoMethod(obj, MUIM_historyListInsert, LINE_SEPARATOR, -1, MUIV_List_Insert_Bottom);
 				DoMethod(obj, MUIM_historyListInsert, myData->cs->res, EVT_BTN_EQUALS, MUIV_List_Insert_Bottom);
@@ -463,7 +471,7 @@ static IPTR doCalcWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doCa
 		if (EXIT_SUCCESS == doCalc(myData))
 		{
 			snprintf((char *)res, 100, "%f", myData->cs->res);
-			jwarning("[doCalcWrapper,isOpMode] Result is %s", res);
+			jdebug("[doCalcWrapper,isOpMode] Result is %s", res);
 			if (TRUE != DoMethod(obj, MUIM_setDisplay, res, FALSE))
 			{
 				jerror("[doCalcWrapper,isOpMode] Write into display failed");
@@ -572,7 +580,7 @@ static IPTR doGetDisplayWrapper(struct IClass *cl UNUSED, Object *obj UNUSED, st
 {
 	char c = 0;
 
-	jwarning("[doGetDisplayWrapper] Entered with %s", msg->src);
+	jdebug("[doGetDisplayWrapper] Entered with '%s'", msg->src);
 
 	STRPTR sp = (STRPTR)strstr((char *)msg->src, (char *)comma);
 	if (sp)
@@ -595,7 +603,7 @@ static IPTR doGetDisplayWrapper(struct IClass *cl UNUSED, Object *obj UNUSED, st
 
 		unsigned int i;
 		i = strtoul((char *)msg->src, NULL, msg->base);
-		jwarning("[doGetDisplayWrapper] testing against overflow: %d", i);
+		jdebug("[doGetDisplayWrapper] testing against overflow: %d", i);
 		if ((int)i == -1)
 			*msg->dst = -1;
 		else
@@ -609,7 +617,7 @@ static IPTR doGetDisplayWrapper(struct IClass *cl UNUSED, Object *obj UNUSED, st
 	if ((errno == ERANGE && ((int)msg->dst == LONG_MAX || (int)msg->dst == LONG_MIN))
 		|| (errno != 0 && msg->dst == 0))
 	{
-		jwarning("[getDisplay] Error converting string: %d", errno);
+		jdebug("[getDisplay] Error converting string: %d", errno);
 		return EXIT_FAILURE;
 	}
 
@@ -621,11 +629,25 @@ static IPTR doGetDisplayWrapper(struct IClass *cl UNUSED, Object *obj UNUSED, st
 
 static IPTR doSetDisplayWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_setDisplayMsg *msg)
 {
-	struct eData *myData = INST_DATA(cl, obj);
-	STRPTR tmpstr = StrDup(msg->val);
-	// jdebug("[doSetDisplayWrapper] Entering with tmpstr 0x%p", tmpstr);
-
 	// FIXME doSetDisplayWrapper should be reorganized
+
+	struct eData *myData = INST_DATA(cl, obj);
+
+	jdebug("[doSetDisplayWrapper] Received msg->val '%s'", msg->val);
+
+	STRPTR tmpstr = StrDup(msg->val);
+
+	// int len = strlen((char *)msg->val);
+	// STRPTR tmpstr = AllocVec(sizeof(STRPTR) * 100, MEMF_CLEAR);
+	// if (!tmpstr)
+	// {
+	// 	jerror("[doSetDisplayWrapper] Failed memory allocation!");
+	// 	fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"[doSetDisplayWrapper] Failed memory allocation!\n");
+	// }
+	// snprintf((char *)tmpstr, strlen((char *)msg->val), "%s", msg->val);
+	
+	jdebug("[doSetDisplayWrapper] Received msg->val '%s'", msg->val);
+	jdebug("[doSetDisplayWrapper] [A] tmpstr is '%s' 0x%p", tmpstr, tmpstr);
 
 	if (msg->doProcess)
 	{
@@ -639,6 +661,7 @@ static IPTR doSetDisplayWrapper(struct IClass *cl, Object *obj, struct MUIP_JCAL
 		convertComma(&tmpstr);
 		removeTrailingZeroes(&tmpstr);
 	}
+	jdebug("[doSetDisplayWrapper] [B] tmpstr is '%s' 0x%p", tmpstr, tmpstr);
 
 	/*
 		What's behind this?
@@ -650,21 +673,27 @@ static IPTR doSetDisplayWrapper(struct IClass *cl, Object *obj, struct MUIP_JCAL
 	if (!isInsertMode(myData->mode))
 	{
 		removeTrailingZeroes(&tmpstr);
-
 		// jdebug("[doSetDisplayWrapper] and removing the comma from '%s'!", tmpstr);
 		removeComma(&tmpstr);
 	}
 	else
 	{
-		jwarning("[doSetDisplayWrapper] Won't remove commas from %s (myData->mode=%d)", tmpstr, myData->mode);
+		jdebug("[doSetDisplayWrapper] Won't remove commas from %s (myData->mode=%d)", tmpstr, myData->mode);
 	}
 
 	jdebug("[doSetDisplayWrapper] Writing on display '%s' (0x%p)", tmpstr, tmpstr);
 	// set(myData->display, MUIA_Text_Contents, tmpstr);
 // #warning added displayStr
 
-	myData->displayStr = tmpstr;
+	// myData->displayStr = tmpstr;
+	snprintf((char *)myData->displayStr, strlen((char *)tmpstr)+1, "%s", tmpstr);
+	// sprintf((char *)myData->displayStr, tmpstr);
 	SET(myData->displayDraw, MUIA_CalcDisplay_Input, myData->displayStr);
+
+	// FIXME: leave a memory leak or a crash?
+	// if (tmpstr) { FreeVec(tmpstr); tmpstr = NULL; }
+
+	jdebug("[doSetDisplayWrapper] displayStr is '%s' 0x%p", myData->displayStr, myData->displayStr);
 
 	return (IPTR) TRUE;
 }
@@ -752,8 +781,10 @@ static IPTR doAddNumber(struct IClass *cl, Object *obj, struct MUIP_JCALC_number
 	struct eData *myData	= INST_DATA(cl,obj);
 // #warning replaced with displayStr
 	// STRPTR currdisplay		= (STRPTR)XGET(myData->display, MUIA_Text_Contents);
-	STRPTR currdisplay		= myData->displayStr;
-	jwarning("[doAddNumber] Got display: %s", currdisplay);
+
+	STRPTR currdisplay = (STRPTR)StrDup(myData->displayStr);
+	// jdebug("[doAddNumber] Got myData->displayStr: '%s' 0x%p", myData->displayStr, myData->displayStr);
+	jdebug("[doAddNumber] Got display: '%s' from myData->displayStr (0x%p)", currdisplay, myData->displayStr);
 
 	char tmpval[2]; tmpval[0] = '\0';
 
@@ -769,16 +800,16 @@ static IPTR doAddNumber(struct IClass *cl, Object *obj, struct MUIP_JCALC_number
 	}
 
 	/*
-		if isInsertMode	= I've just put a number, will add one more
-		if isOpMode		= adding other operand
-		if isCalcMode	= Pressed a number after the last "=". I want to start from scratch
+		if isInsertMode				= I've just put a number, will add one more
+		if isOpMode					= adding other operand
+		if isCalcMode or undefined	= Pressed a number after the last "=". I want to start from scratch
 	*/
 
 	if (isInsertMode(myData->mode))
 	{
 		int max_fig = 0;
 
-		jwarning("[doAddNumber] myData->cs->base=%d", myData->cs->base);
+		jdebug("[doAddNumber] myData->cs->base=%d", myData->cs->base);
 		switch(myData->cs->base)
 		{
 			case BINBASE:
@@ -795,41 +826,41 @@ static IPTR doAddNumber(struct IClass *cl, Object *obj, struct MUIP_JCALC_number
 				break;
 		}
 
-		if ((int)strlen((char *)currdisplay) == max_fig)
+		if ((int)strlen((char *)currdisplay) <= max_fig)
 		{
-			jwarning("[doAddNumber] Cannot allow more than %d figures", strlen((char *)currdisplay));
-		}
-		else
-		{
-			int len = strlen((char *)currdisplay) + strlen(tmpval);
-			STRPTR tmpstr = AllocVec(sizeof(STRPTR) * len, MEMF_CLEAR);
+			int newlen = strlen((char *)currdisplay) + strlen(tmpval);
+			STRPTR tmpstr = AllocVec(sizeof(STRPTR) * newlen, MEMF_CLEAR);
+			// printf("[doAddNumber] Allocated %d at 0x%p\n", sizeof(STRPTR)*newlen, tmpstr);
 
-			/* if the first char of the display is a zero, replace with a number */
+			/* if the first and only char of the display is a zero, replace with the number */
 			if ( strlen((char *)currdisplay) == 1 && *currdisplay == '0' )
 			{
-				jwarning("[doAddNumber] replace char");
+				jdebug("[doAddNumber] replace char");
 				strncat((char *)tmpstr, tmpval, strlen(tmpval));
 			}
 			else
 			{
-				jwarning("[doAddNumber] concat display %s %s", tmpstr, tmpval);
+				jdebug("[doAddNumber] concat display %s+%s", currdisplay, tmpval);
 				strncat((char *)tmpstr, (char *)currdisplay, strlen((char *)currdisplay));
 				strncat((char *)tmpstr, tmpval, strlen(tmpval));
 			}
 
-			jwarning("[doAddNumber] ends with: %s", tmpstr);
+			jdebug("[doAddNumber-InsertMode] Setting display to %s", tmpstr);
 			DoMethod(obj, MUIM_setDisplay, tmpstr, FALSE);
 			FreeVec(tmpstr); tmpstr = NULL;
 		}
+		else
+			jdebug("[doAddNumber] Cannot allow more than %d figures", max_fig);
 	}
 	else if (isOpMode(myData->mode))
 	{
-		jdebug("[doAddNumber] Setting display to %s", tmpval);
+		jdebug("[doAddNumber-OpMode] Setting display to %s", tmpval);
 		myData->cs->op	= myData->operator;
 		DoMethod(obj, MUIM_setDisplay, tmpval, FALSE);
 	}
 	else
 	{
+		jdebug("[doAddNumber-%d mode] Setting display to %s", myData->mode, tmpval);
 		// either isCalcMode or undefined
 		myData->cs->op	= -1;
 		myData->cs->n1	= .0f;
@@ -840,6 +871,11 @@ static IPTR doAddNumber(struct IClass *cl, Object *obj, struct MUIP_JCALC_number
 
 	// D(bug("[btnNumClick] Setting mode to %d with op=%d\n", INSMODE, myData->cs->op));
 	myData->mode	= INSMODE;
+
+	if (currdisplay)
+	{
+		FreeVec(currdisplay); currdisplay = NULL;
+	}
 
 	return (IPTR) TRUE;
 }
@@ -864,42 +900,26 @@ static IPTR doAddConstant(struct IClass *cl, Object *obj, struct MUIP_JCALC_numb
 
 static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMsg *msg)
 {
-	jwarning("[doOpWrapper]");
+	jdebug("[doOpWrapper]");
     struct eData *myData	= INST_DATA(cl,obj);
 	BYTE value				= msg->value;
-	// STRPTR tmpstr			= AllocVec(sizeof(STRPTR)*50, MEMF_ANY);
-	// if (tmpstr == NULL)
-	// {
-	// 	jerror("[doOpWrapper] Failed memory allocation!");
-	// 	fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"[doOpWrapper] Failed memory allocation!\n");
-	// }
 
 // #warning replaced with displayStr
-	// STRPTR tmpstr = (STRPTR)XGET(myData->display, MUIA_Text_Contents);
-	STRPTR tmpstr = StrDup((STRPTR)myData->displayStr);
-
-	// STRPTR _aaa = (STRPTR)XGET(myData->display, MUIA_Text_Contents);
-	// jdebug("[doOpWrapper] _aaa is %s",_aaa);
-	// int display_len = strlen((char *)_aaa);
-	// jdebug("[doOpWrapper] display_len = %d", display_len);
-	// // strncpy((char *)tmpstr, (char *)_aaa, display_len);
-	// snprintf((char *)tmpstr, display_len, "%s", (char *)_aaa);
-
-	// STRPTR historyLine = AllocVec(sizeof(STRPTR)*HISTORY_LINE_LENGTH, MEMF_ANY);
-	// if (historyLine == NULL)
-	// {
-	// 	jerror("[doOpWrapper] Failed memory allocation!");
-	// 	fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"[doOpWrapper] Failed memory allocation!\n");
-	// }
+	STRPTR tmpstr = StrDup(myData->displayStr);
+	jdebug("[doOpWrapper] myData->displayStr='%s', tmpstr='%s'", myData->displayStr, tmpstr);
 
 	STRPTR res = AllocVec(sizeof(STRPTR)*50, MEMF_CLEAR);
+	// printf("[doOpWrapper] Allocated %d at 0x%p\n", sizeof(STRPTR)*50, res);
 	if (res == NULL)
 	{
 		jerror("[doOpWrapper] Failed memory allocation!");
 		fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"[doOpWrapper] Failed memory allocation!\n");
 	}
 
-	jwarning("[doOpWrapper] Operator is %d, mode is %d", value, myData->mode);
+	jdebug("[doOpWrapper] *** TAG MEMORY ALLOC ***  0x%p (\"%s\", %d bytes)",
+		res, res, strlen((char *)res));
+
+	jdebug("[doOpWrapper] Operator is %d, mode is %d", value, myData->mode);
 
 	if (isInsertMode(myData->mode))
 	{
@@ -927,7 +947,7 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 		if (0 == myData->cs->n1)
 		{
 			jdebug("[doOpWrapper] cs->n1 is 0, will put something in it");
-			jdebug("[doOpWrapper] Display is %s, base is %d", tmpstr, myData->cs->base);
+			jdebug("[doOpWrapper] Display is '%s', base is %d", tmpstr, myData->cs->base);
 
 			if (TRUE != DoMethod(obj, MUIM_getDisplay, tmpstr, &myData->cs->n1, myData->cs->base))
 			{
@@ -935,7 +955,8 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 			}
 			else
 			{
-				jdebug("[doOpWrapper] getDisplay returned %f into cs->n1", myData->cs->n1);
+				jdebug("[doOpWrapper] getDisplay returned %f into cs->n1 from '%s' and base:%d",
+					myData->cs->n1, tmpstr, myData->cs->base);
 			}
 
 			// Write to history reel
@@ -969,6 +990,7 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 				 * 	72 [op] (72 * 5 / 100) = result
 				 */
 
+				jdebug("[doOpWrapper] Op is %d", myData->cs->op);
 				switch(myData->cs->op)
 				{
 					case EVT_BTN_DIVIDE:
@@ -980,9 +1002,12 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 						break;
 					case EVT_BTN_PLUS:
 					case EVT_BTN_MINUS:
+						jdebug("[doOpWrapper] tmpstr is '%s' (0x%p)", tmpstr, tmpstr);
 						myData->cs->n2	= myData->cs->n1 * ( myData->cs->n2 / 100);
 						snprintf((char *)tmpstr, 100, "%f", myData->cs->n2);
+						jdebug("[doOpWrapper] tmpstr is '%s' (0x%p)", tmpstr, tmpstr);
 						removeTrailingZeroes(&tmpstr);
+						jdebug("[doOpWrapper] tmpstr is '%s' (0x%p)", tmpstr, tmpstr);
 						break;
 				}
 			}
@@ -1013,7 +1038,7 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 					fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"[doOpWrapper] Failed display write");
 				}
 				else
-					jwarning("[doOpWrapper] Successfully wrote into display");
+					jdebug("[doOpWrapper] Successfully wrote into display");
 			}
 			else
 			{
@@ -1141,12 +1166,14 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 
 	if (res)
 	{
+		jdebug("[doOpWrapper] *** TAG MEMORY FREE ***  0x%p (\"%s\", %d bytes)",
+			res, res, strlen((char *)res));
 		FreeVec(res); res = NULL;
 	}
 
 	if(tmpstr)
 	{
-		jdebug("[doOpWrapper] *** TAG FREE MEMORY ***  0x%p (\"%s\", %d bytes)",
+		jdebug("[doOpWrapper] *** TAG MEMORY FREE ***  0x%p (\"%s\", %d bytes)",
 			tmpstr, tmpstr, strlen((char *)tmpstr));
 		FreeVec(tmpstr); tmpstr = NULL;
 	}
@@ -1190,6 +1217,7 @@ static IPTR doOpWrapperImmediate(struct IClass *cl, Object *obj, struct MUIP_JCA
 			}
 
 			STRPTR res = AllocVec(50*sizeof(STRPTR), MEMF_CLEAR);
+			// printf("[doOpWrapperImmediate] Allocated %d at 0x%p\n", sizeof(STRPTR)*50, res);
 			snprintf((char *)res, 100, "%f", myData->cs->res);
 			removeTrailingZeroes(&res);
 			removeComma(&res);
@@ -1228,6 +1256,7 @@ static IPTR doAddDot(struct IClass *cl, Object *obj)
 
 		size = sizeof(STRPTR)*2;
 		tmpstr = AllocVec(size, MEMF_CLEAR);
+		// printf("[doAddDot] Allocated %d at 0x%p\n", size, tmpstr);
 		// memset(tmpstr, 0, size);
 		tmpstr = StrDup((STRPTR)"0.");
 	}
@@ -1245,6 +1274,7 @@ static IPTR doAddDot(struct IClass *cl, Object *obj)
 					sizeof(STRPTR) * strlen((char *)comma);
 
 			tmpstr = AllocVec(size, MEMF_CLEAR);
+			// printf("[doAddDot] Allocated %d at 0x%p\n", size, tmpstr);
 			// memset(tmpstr, 0, size);
 			jdebug("[doAddDot] after allocvec tmpstr (0x%p):'%s'", tmpstr, tmpstr);
 			jdebug("[doAddDot] myData->displayStr (0x%p):'%s'", myData->displayStr, myData->displayStr);
@@ -1277,6 +1307,7 @@ static IPTR doClearDisplay(struct IClass *cl, Object *obj, struct MUIP_JCALC_Cle
 {
 	struct eData *myData = INST_DATA(cl, obj);
 	BYTE flag	= msg->flag;
+	jdebug("[doClearDisplay] Will set display to 0 and reset everything");
 
 	if (flag == DISPLAY_CA)
 	{
@@ -1287,34 +1318,45 @@ static IPTR doClearDisplay(struct IClass *cl, Object *obj, struct MUIP_JCALC_Cle
 		myData->mode	= 0;
 	}
 
-	DoMethod(obj, MUIM_setDisplay, "0", FALSE);
+	char zero[2] = {'0', '\0'};
+	DoMethod(obj, MUIM_setDisplay, zero, FALSE);
 
 	return (IPTR) TRUE;
 }
 
 static IPTR doClearOneChar(struct IClass *cl, Object *obj)
 {
-	struct eData *myData	= INST_DATA(cl, obj);
+	struct eData *myData = INST_DATA(cl, obj);
+
 // #warning replaced with displayStr
 	// char *str = (char *)XGET(myData->display, MUIA_Text_Contents);
-	char *str = (char *)myData->displayStr;
+	// char *str = (char *)myData->displayStr;
+
+	// FIXME won't print this line!
+	jdebug("[doClearOneChar] Current myData->displayStr is '%s'", myData->displayStr );
 
 	// If I'm showing a result, don't touch the display
 	if (isCalcMode(myData->mode))
+	{
 		return (IPTR) TRUE;
+	}
 
-	int len	= strlen(str);
+	int len = strlen((char *)myData->displayStr);
 	if (1 == len)
 	{
-		// set(myData->display, MUIA_Text_Contents, (STRPTR)"0");
-		DoMethod(obj, MUIM_setDisplay, "0", FALSE);
+		jdebug("[doClearOneChar] len:%d so setting display to 0", len);
+		char zero[2] = {'0', '\0'};
+		DoMethod(obj, MUIM_setDisplay, zero, FALSE);
 	}
 	else
 	{
-		char str2[len];
-		strncpy(str2, str, len-1);
-		str2[len-1]	= '\0';
-		DoMethod(obj, MUIM_setDisplay, str2, FALSE);
+		// eat back one char
+		char str[len+1]; str[0] = '\0';
+		sprintf(str, "%s", (char *)myData->displayStr);
+		jdebug("[doClearOneChar] Current str is:%s", str);
+
+		str[len-1]	= '\0';
+		DoMethod(obj, MUIM_setDisplay, str, FALSE);
 	}
 
 	return (IPTR) TRUE;
@@ -1341,13 +1383,13 @@ static IPTR setSaveAs(struct IClass *cl, Object *obj)
 
 static IPTR toggleHistoryPanel(struct IClass *cl, Object *obj)
 {
-	jwarning("[toggleHistoryPanel] [start] MUIA_JCALC_toggleHistoryPanel %d", (int)XGET(obj, MUIA_JCALC_toggleHistoryPanel));
+	jdebug("[toggleHistoryPanel] [start] MUIA_JCALC_toggleHistoryPanel %d", (int)XGET(obj, MUIA_JCALC_toggleHistoryPanel));
 	struct eData *myData = INST_DATA(cl, obj);
 
-	jwarning("[toggleHistoryPanel] Will actually make the panel appear/disappear");
+	jdebug("[toggleHistoryPanel] Will actually make the panel appear/disappear");
 	DoMethod(obj, MUIM_ManageGroup, obj, myData->historyPanel);
 
-	jwarning("[toggleHistoryPanel] Will set attr and menu checks");
+	jdebug("[toggleHistoryPanel] Will set attr and menu checks");
 	if (XGET(obj, MUIA_JCALC_toggleHistoryPanel) == FALSE)
 	{
 		SetAttrs(obj, MUIA_JCALC_toggleHistoryPanel, TRUE, TAG_DONE);
@@ -1359,7 +1401,7 @@ static IPTR toggleHistoryPanel(struct IClass *cl, Object *obj)
 		SetAttrs(menu_history, MUIA_Menuitem_Checked, FALSE, TAG_DONE);	
 	}
 
-	jwarning("[toggleHistoryPanel] [end] MUIA_JCALC_toggleHistoryPanel %d", (int)XGET(obj, MUIA_JCALC_toggleHistoryPanel));
+	jdebug("[toggleHistoryPanel] [end] MUIA_JCALC_toggleHistoryPanel %d", (int)XGET(obj, MUIA_JCALC_toggleHistoryPanel));
 
 	return (IPTR) TRUE;
 }
@@ -1368,7 +1410,7 @@ static IPTR setBase(struct IClass *cl, Object *obj, struct MUIP_JCALC_setBaseMsg
 {
     struct eData *myData = INST_DATA(cl, obj);
 
-	jwarning("setBase: %d", msg->base);
+	jdebug("setBase: %d", msg->base);
 	switch (msg->base)
 	{
 		case BINBASE:
@@ -1449,7 +1491,7 @@ static IPTR setMode(struct IClass *cl, Object *obj, struct MUIP_JCALC_setModeMsg
 
 static IPTR mManageGroup(struct IClass *cl, Object *obj, struct MUIP_JCALC_manageGroup *msg)
 {
-	jwarning("[mManageGroup] obj=0x%p parent=0x%p, child=0x%p", obj, msg->_mainGrp, msg->_subGrp);
+	jdebug("[mManageGroup] obj=0x%p parent=0x%p, child=0x%p", obj, msg->_mainGrp, msg->_subGrp);
 	Object *parent			= msg->_mainGrp;
 	Object *_subgrp			= msg->_subGrp;
 
@@ -1490,11 +1532,11 @@ static IPTR mManageGroup(struct IClass *cl, Object *obj, struct MUIP_JCALC_manag
 	// add or remove the subgroup
 	if(DoMethod(parent, MUIM_Group_InitChange))
 	{
-		jwarning("[mManageGroup] InitChange");
+		jdebug("[mManageGroup] InitChange");
 
 		if (FALSE == exists)
 		{
-			jwarning("[mManageGroup] Adding group %s!", _subgrp_id);
+			jdebug("[mManageGroup] Adding group %s!", _subgrp_id);
 			DoMethod(parent, OM_ADDMEMBER, _subgrp);
 
 			/* Order a different set of objects according to what I'm adding and where */
@@ -1504,7 +1546,7 @@ static IPTR mManageGroup(struct IClass *cl, Object *obj, struct MUIP_JCALC_manag
 			}
 			else
 			{
-				// ok se attivo il grp_historyPanel
+				// ok if I'm activating grp_historyPanel
 // #warning replaced with displayStr
 				// DoMethod(obj, MUIM_Group_Sort, myData->historyPanel, myData->display, myData->grp_main, NULL);
 				DoMethod(obj, MUIM_Group_Sort, myData->historyPanel, myData->displayDraw, myData->grp_main, NULL);
@@ -1512,9 +1554,9 @@ static IPTR mManageGroup(struct IClass *cl, Object *obj, struct MUIP_JCALC_manag
 		}
 		else
 		{
-			jwarning("[mManageGroup] Removing group %s!", _subgrp_id);
+			jdebug("[mManageGroup] Removing group %s!", _subgrp_id);
 			DoMethod(parent, OM_REMMEMBER, _subgrp);
-			jwarning("[mManageGroup] Group removed!");
+			jdebug("[mManageGroup] Group removed!");
 		}
 
 		DoMethod(parent, MUIM_Group_ExitChange);
@@ -1539,10 +1581,10 @@ static IPTR setBaseBin(struct IClass *cl, Object *obj)
 	struct eData *myData = INST_DATA(cl, obj);
 
 	/*
-	 * Come faccio a "raggiungere" e modificare un qualunque widget della mia interfaccia,
-	 * ma NON dichiarato nella struttura dati della classe? Faccio overload di OM_GET/OM_SET?
+	 * How do I get and modify *any* widget of my UI that is *not* declared in the private
+	 * data struct of my class? Should I overload OM_GET/OM_SET?
 	 *
-	 * It's a bucket for whatever data the class needs!
+	 * The private data struct is a "bin" for whatever data the class needs!
 	 */
 
 	// update the display, convert whatever it is on screen to "bin"
@@ -1605,18 +1647,21 @@ static IPTR setBaseDec(struct IClass *cl, Object *obj)
 	// switch the calculator base mode to DEC
 	// disable all the buttons I don't need:
 	// a-f, set base mode to 10
-	struct eData *myData	= INST_DATA(cl, obj);
+	struct eData *myData = INST_DATA(cl, obj);
 
 	// update the display, convert whatever it is on screen to "dec"
 	BYTE curr_base	= myData->cs->base;
 	myData->cs->base	= 10;
 	// printf("[setDecBase] Set base mode to %d\n", myData->cs->base);
-	STRPTR str;
+
 // #warning replaced with displayStr
 	// str	= (STRPTR)XGET(myData->display, MUIA_Text_Contents);
-	str	= myData->displayStr;
+	STRPTR str = StrDup(myData->displayStr);
+
+	jdebug("[setBaseDec] displayStr at '%s' 0x%p", myData->displayStr, myData->displayStr);
 	convertDisplay(&str, curr_base, &myData->cs->base);
 	DoMethod(obj, MUIM_setDisplay, str, FALSE);
+	jdebug("[setBaseDec] displayStr at '%s' 0x%p", myData->displayStr, myData->displayStr);
 
 	// Enable all the 'scientific' buttons
 	Object *_obj;
@@ -1652,6 +1697,11 @@ static IPTR setBaseDec(struct IClass *cl, Object *obj)
 	set(myData->btn_inverse, MUIA_Disabled, FALSE);
 	set(myData->btn_invert_sign, MUIA_Disabled, FALSE);
 	set(myData->btn_pi, MUIA_Disabled, FALSE);
+
+	if (str)
+	{
+		FreeVec(str); str = NULL;
+	}
 
 	return (IPTR) TRUE;
 }
@@ -1783,6 +1833,7 @@ static IPTR changeSign(struct IClass *cl, Object *obj)
 		jdebug("[changeSign] Changing %f to %f", dest, dest*-1);
 		dest = dest * -1;
 		STRPTR tmpstr = AllocVec(50*sizeof(STRPTR), MEMF_CLEAR);
+		// printf("[changeSign] Allocated %d at 0x%p\n", sizeof(STRPTR)*50, tmpstr);
 		snprintf((char *)tmpstr, 100, "%f", dest);
 
 		removeTrailingZeroes(&tmpstr);
@@ -1817,6 +1868,8 @@ static IPTR memMgmt(struct IClass *cl, Object *obj, struct MUIP_JCALC_memMsg *ms
 	DOUBLE dest				= 0;
 // #warning replaced with displayStr
 	// STRPTR tmpstr			= (STRPTR)XGET(myData->display, MUIA_Text_Contents);
+
+	// Possible memory issue here? Isn't necessary to allocate memory for tmpstr?
 	STRPTR tmpstr	= myData->displayStr;
 
 	if (TRUE != DoMethod(obj, MUIM_getDisplay, tmpstr, &dest, myData->cs->base))
@@ -1862,10 +1915,13 @@ HOOKPROTONHNO(listConstructor, struct entry *, struct entry *p)
 	struct entry *e;
 	if ((e = AllocVec(sizeof(struct entry), MEMF_CLEAR)))
 	{
+		// printf("[listConstructor A] Allocated %d at 0x%p\n", sizeof(struct entry), e);
 		if (NULL != (e->line = AllocVec(sizeof(char)*HISTORY_LINE_LENGTH, MEMF_CLEAR)))
 		{
+			// printf("[listConstructor B] Allocated %d at 0x%p\n", sizeof(char)*HISTORY_LINE_LENGTH, e->line);
 			if (NULL != (e->op = AllocVec(sizeof(char)*2, MEMF_CLEAR)))
 			{
+				// printf("[listConstructor C] Allocated %d at 0x%p\n", sizeof(char)*2, e->op);
 				snprintf((char *)e->line, 100, "%s", p->line);
 				snprintf((char *)e->op, 2, "%s", p->op);
 				return e;
@@ -1952,16 +2008,16 @@ IPTR DoSuperNew (struct IClass *cl, Object *obj, IPTR tag1, ...)
 /* OM_NEW */
 static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
 {
-	jwarning("[OM_NEW] Init");
+	jdebug("[mJcalc_New] Init");
 
 	// Parsing class init parameters
 	struct TagItem *tags	= ((struct opSet *)msg)->ops_AttrList;
 	BOOL toggleSaveAsCsv 	= GetTagData(MUIA_JCALC_SaveAsCSV, (IPTR)FALSE, tags);
 	BOOL toggleHistoryPanel	= GetTagData(MUIA_JCALC_toggleHistoryPanel, (IPTR)FALSE, tags);
-	BOOL setBase			= GetTagData(MUIA_JCALC_SetBase, (IPTR)FALSE, tags);
+	// BOOL setBase			= GetTagData(MUIA_JCALC_SetBase, (IPTR)FALSE, tags);
 
-	jwarning("[mJcalc_New] Will instance class with: MUIA_JCALC_SaveAsCSV=%d, MUIA_JCALC_toggleHistoryPanel=%d, MUIA_JCALC_SetBase=%d",
-		toggleSaveAsCsv, toggleHistoryPanel, setBase);
+	jdebug("[mJcalc_New] Will instance class with: MUIA_JCALC_SaveAsCSV=%d, MUIA_JCALC_toggleHistoryPanel=%d",
+		toggleSaveAsCsv, toggleHistoryPanel);
 
 	// Object *aboutApp;
 
@@ -1985,6 +2041,7 @@ static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
 		// freeList(stack);
 		return EXIT_FAILURE;
 	}
+	// printf("[OM_NEW] Allocated %d 0x%p (malloc)\n", sizeof(struct calcStack), cs);
 
 	temp.toggleSaveAsCsv	= toggleSaveAsCsv;
 	temp.toggleHistoryPanel = toggleHistoryPanel;
@@ -2025,10 +2082,12 @@ static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
 		D(bug("Malloc failed for stack, bail out!\n"));
 		return EXIT_FAILURE;
 	}
+	// printf("[OM_NEW] Allocated %d 0x%p (malloc)\n", sizeof(struct reel), temp.history);
 	temp.history->next	= NULL;
 	temp.history->value	= .0f;
 	temp.history->op	= -1;
-	jwarning("[OM_NEW] History reel allocated @0x%p (-> 0x%p)", temp.history, temp.history->next);
+	jdebug("[OM_NEW] History reel allocated @0x%p (-> 0x%p)", temp.history, temp.history->next);
+	// printf("[OM_NEW] Allocated %d 0x%p\n", sizeof(struct reel), temp.history);
 
 	/* Event handling init done in MUIM_Setup - why? */
 
@@ -2173,10 +2232,7 @@ static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
 #endif
 
 				Child, temp.btn_pi		= MakeButton((UBYTE *)"Pi", 'p'),
-				// Child, VSpace(10),
-
 				Child, temp.btn_history	= MakeButton((UBYTE *)"HST", 'h'),
-
 				Child, temp.btn_ca		= MakeButton((UBYTE *)"CA", 0),
 				Child, temp.btn_ce		= MakeButton((UBYTE *)"CE", 0),
 				Child, temp.btn_bs		= MakeButton((UBYTE *)"BS", 0),
@@ -2221,14 +2277,24 @@ static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
    		TAG_MORE, (IPTR) msg->ops_AttrList))
    	)
    	{
-   		struct eData *data = INST_DATA(cl, obj);
-   		memcpy(data, &temp, sizeof (*data));
+		struct eData *data = INST_DATA(cl, obj);
+		memcpy(data, &temp, sizeof (*data));
 
-   		DoMethod(obj, MUIM_setBase, DECBASE);
-   		// SetAttrs(menu_dec, MUIA_Menuitem_Checked, TRUE, TAG_DONE);
+		/* Setting initial GUI values */
 
+		// jdebug("[mJcalc_New] displayStr is '%s' 0x%p", data->displayStr, data->displayStr);
+
+		// Base is decimal
+		DoMethod(obj, MUIM_setBase, DECBASE);
+		// SetAttrs(menu_dec, MUIA_Menuitem_Checked, TRUE, TAG_DONE);
+
+		// Mode is BASIC
 		DoMethod(obj, MUIM_setMode, BASICMODE);
-   		
+
+		// Initial display value is 0 - is it needed? In theory NO! (FIXME)
+		// jdebug("[mJcalc_New] displayStr is '%s' 0x%p", data->displayStr, data->displayStr);
+		// DoMethod(obj, MUIM_setDisplay, "0", FALSE);
+		// jdebug("[OM_NEW] displayStr at '%s' 0x%p", data->displayStr, data->displayStr);
 
    		/* Listeners */
 
@@ -2438,7 +2504,7 @@ static IPTR mJcalc_Set (struct IClass *cl, Object *obj, struct opSet *msg)
         switch(tag->ti_Tag)
         {
 			case MUIA_JCALC_toggleHistoryPanel:
-				jwarning("[mJcalc_Set] MUIA_JCALC_toggleHistoryPanel");
+				jdebug("[mJcalc_Set] MUIA_JCALC_toggleHistoryPanel");
                 if (data->toggleHistoryPanel == (LONG)tag->ti_Data)
                 	tag->ti_Tag = TAG_IGNORE;
                 else
@@ -2446,7 +2512,7 @@ static IPTR mJcalc_Set (struct IClass *cl, Object *obj, struct opSet *msg)
                 break;
 
             case MUIA_JCALC_SaveAsCSV:
-            	jwarning("[mJcalc_Set] MUIA_JCALC_SaveAsCSV");
+            	jdebug("[mJcalc_Set] MUIA_JCALC_SaveAsCSV");
                 if (data->toggleSaveAsCsv == (LONG)tag->ti_Data)
                 	tag->ti_Tag = TAG_IGNORE;
                 else
@@ -2454,7 +2520,7 @@ static IPTR mJcalc_Set (struct IClass *cl, Object *obj, struct opSet *msg)
                 break;
 
             case MUIA_JCALC_SetBase:
-            	jwarning("[mJcalc_Set] MUIA_JCALC_SetBase");
+            	jdebug("[mJcalc_Set] MUIA_JCALC_SetBase");
                 if (data->setBase == (LONG)tag->ti_Data)
                 	tag->ti_Tag = TAG_IGNORE;
                 else
@@ -2492,7 +2558,7 @@ static IPTR mJcalc_Get (struct IClass *cl, Object *obj, struct opGet *msg)
 /* MUIM_SETUP */
 static IPTR mJcalc_Setup (struct IClass *cl, Object *obj, Msg msg)
 {
-	jwarning("[MUIM_SETUP]");
+	jdebug("[MUIM_SETUP]");
 	struct eData *data = INST_DATA(cl, obj);
 
 	if (!DoSuperMethodA(cl, obj, msg))
@@ -2514,7 +2580,7 @@ static IPTR mJcalc_Setup (struct IClass *cl, Object *obj, Msg msg)
 /* MUIM_CLEANUP */
 static IPTR mJcalc_Cleanup(struct IClass *cl, Object * obj, Msg msg)
 {
-	jwarning("[MUIM_CLEANUP]");
+	jdebug("[MUIM_CLEANUP]");
     struct eData *data = INST_DATA(cl, obj);
     DoMethod(_win(obj), MUIM_Window_RemEventHandler, (IPTR) & data->ehnode);
     return DoSuperMethodA(cl, obj, msg);
@@ -2525,19 +2591,19 @@ static IPTR mJcalc_AskMinMax(struct IClass *cl UNUSED, Object * obj, struct MUIP
     // Have GCC just shut up!
     // jdebug("[mJcalc_AskMinMax] Unused params cl=0x%p", cl);
 
-	jwarning("[MUIM_ASKMINMAX]");
+	jdebug("[MUIM_ASKMINMAX]");
 
 	DoSuperMethodA(cl, obj, (Msg)msg);
 
-	jwarning("[MUIM_ASKMINMAX] Object is 0x%p (%s)", obj,
+	jdebug("[MUIM_ASKMINMAX] Object is 0x%p (%s)", obj,
 			(STRPTR)XGET(obj, MUIA_ObjectID));
 
-	jwarning("[MUIM_ASKMINMAX] Height: %d, %d, %d",
+	jdebug("[MUIM_ASKMINMAX] Height: %d, %d, %d",
 			msg->MinMaxInfo->MinHeight,
 			msg->MinMaxInfo->DefHeight,
 			msg->MinMaxInfo->MaxHeight);
 
-	jwarning("[MUIM_ASKMINMAX] Witdh: %d, %d, %d",
+	jdebug("[MUIM_ASKMINMAX] Width: %d, %d, %d",
 			msg->MinMaxInfo->MinWidth,
 			msg->MinMaxInfo->DefWidth,
 			msg->MinMaxInfo->MaxWidth);
@@ -2588,6 +2654,7 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
 	struct entry *historyLine;
 
 	STRPTR str = AllocVec(sizeof(STRPTR)*HISTORY_LINE_LENGTH, MEMF_CLEAR);
+	// printf("[mInsert] Allocated %d at 0x%p\n", sizeof(STRPTR)*HISTORY_LINE_LENGTH, str);
 	if (str == NULL)
 	{
 		jerror("[mInsert] Failed allocation!");
@@ -2598,7 +2665,7 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
 	/* FIXME
 	 * 	why am I sending a -1 (in case of a line break) and I always read it here as -3?
 	 * */
-	jdebug(">>> Operator is %d", op);
+	jdebug("[mInsert] Operator is %d", op);
 	if (op != -3)
 	{
 		// manually remove zeroes in excess (can't do with printf formatting)
@@ -2618,11 +2685,12 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
     	// jdebug("XXX str after convertDisplay: '%s' (0x%p)", str, str);
 
     	// convert comma according to locale
-    	jwarning("[mInsert] Convert comma");
+    	jdebug("[mInsert] Convert comma");
     	convertComma(&str);
     	// jdebug("XXX str convertComma: '%s' (0x%p)", str, str);
 
         historyTxt = AllocVec(sizeof(STRPTR)*HISTORY_LINE_LENGTH, MEMF_CLEAR);
+        // printf("[mInsert] Allocated %d at 0x%p\n", sizeof(STRPTR)*HISTORY_LINE_LENGTH, historyTxt);
         if (historyTxt == NULL)
         {
         	jerror("[mInsert] Failed allocation!");
@@ -2639,6 +2707,7 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
     else
     {
         historyTxt = AllocVec(sizeof(STRPTR)*16, MEMF_CLEAR);
+        // printf("[mInsert] Allocated %d at 0x%p\n", sizeof(STRPTR)*16, historyTxt);
         if (historyTxt == NULL)
         {
         	jerror("[mInsert] Failed allocation!");
@@ -2649,6 +2718,7 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
     }
 
     historyLine = AllocVec(sizeof(struct entry), MEMF_CLEAR);
+    // printf("[mInsert] Allocated %d at 0x%p\n", sizeof(struct entry), historyLine);
     if (historyLine == NULL)
     {
     	jerror("[mInsert] Failed allocation!");
@@ -2663,12 +2733,16 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
 
 	DoMethod(myData->historyList, MUIM_NList_Insert, &historyLine, 1, MUIV_List_Insert_Bottom);
 	SetAttrs(myData->historyList, MUIA_List_Active, MUIV_List_Active_Bottom, TAG_DONE);
-    jwarning("[mInsert] Wrote into history reel: '%s'", historyTxt);
+    jdebug("[mInsert] Added line to history panel: '%s'", historyTxt);
 
     if(str)
     {
-    	// jdebug("XXX str after: '%s' (0x%p)", str, str);
     	FreeVec(str); str = NULL;
+    }
+
+    if (historyTxt)
+    {
+    	FreeVec(historyTxt); historyTxt = NULL;
     }
 
     if(historyLine)
@@ -2691,12 +2765,20 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
 static IPTR doGetLastResult(struct IClass *cl, Object *obj, struct MUIP_JCALC_AREXX_resultMsg *msg)
 {
 	struct eData *myData = INST_DATA(cl,obj);
-	jdebug("[doGetLastResult] >>> parseCmdString rcvd msg->value (0x%p): '%s'", msg->value, msg->value);
 	STRPTR currdisplay	= myData->displayStr;
+	jdebug("[doGetLastResult] starts with(0x%p): '%s'", currdisplay, currdisplay);
 	DOUBLE num;
 	IPTR ris = FALSE;
-	STRPTR tmpstr = StrDup(msg->value);
-	// jdebug("[doGetLastResult] >>> created tmpstr (0x%p): '%s'", tmpstr, tmpstr);
+	STRPTR tmpstr;
+
+	if (0 == strcmp((char *)currdisplay, "+inf"))
+	{
+		char _b[4+1] = {'+','i','n','f','\0'};
+		strcpy((char *)msg->value, (char *)_b);
+		jdebug("[doGetLastResult] bail out immediately due to error string '%s'", msg->value);
+		ris = TRUE;
+		return ris;
+	}
 
 	if (TRUE != DoMethod(obj, MUIM_getDisplay, currdisplay, &num, myData->cs->base))
 	{
@@ -2704,6 +2786,10 @@ static IPTR doGetLastResult(struct IClass *cl, Object *obj, struct MUIP_JCALC_AR
 	}
 	else
 	{
+		jdebug("[doGetLastResult] got display '%f'", num);
+
+		tmpstr = AllocVec(sizeof(STRPTR) * 100, MEMF_CLEAR);
+		// printf("[doGetLastResult] Allocated %d at 0x%p\n", sizeof(STRPTR)*100, tmpstr);
 	    snprintf((char *)tmpstr, 100, "%f", num);
 
 		max_decimals(&tmpstr);
@@ -2741,9 +2827,13 @@ static IPTR doGetLastResult(struct IClass *cl, Object *obj, struct MUIP_JCALC_AR
 		// printf(">>>> parseCmdString snprintf result:'%s'\n", msg->value);
 
 		// msg->value = StrDup((STRPTR)tmpstr);
-		jdebug("[doGetLastResult] tmpstr:0x%p='%s' msg->value:0x%p='%s'",
-			tmpstr, tmpstr,
+		jdebug("[doGetLastResult] returning msg->value:0x%p='%s'",
 			msg->value, msg->value);
+
+		if (tmpstr)
+		{
+			FreeVec(tmpstr); tmpstr = NULL;
+		}
 
 	    ris = TRUE;
 	}
@@ -2836,14 +2926,14 @@ STRPTR getFilename(Object *win, STRPTR title, BOOL save, STRPTR *path)
     if (done)
 	    *path = StrDup((STRPTR)_path);
    else
-    	jwarning("[getFilename] Returning no value");
+    	jdebug("[getFilename] Returning no value");
 
     if (req)
         MUI_FreeAslRequest(req);
 
     set(app, MUIA_Application_Sleep, FALSE);
 
-    jwarning("[getFilename] Returning %s", *path);
+    jdebug("[getFilename] Returning %s", *path);
 
 
     return *path;
@@ -2856,6 +2946,7 @@ ULONG historyListSaveAs(struct IClass *cl, Object *obj)
 	BOOL toggleSaveAsCsv = myData->toggleSaveAsCsv;
 	BOOL result = TRUE;
 	STRPTR file_path = AllocVec(sizeof(STRPTR)*ASL_BUFFER_LEN, MEMF_CLEAR);
+	// printf("[historyListSaveAs] Allocated %d at 0x%p\n", sizeof(STRPTR)*ASL_BUFFER_LEN, file_path);
 	if (file_path == NULL)
 	{
 		jerror("[historyListSaveAs] Failed memory allocation!");
@@ -2870,7 +2961,9 @@ ULONG historyListSaveAs(struct IClass *cl, Object *obj)
 	{
 		struct entry *item;
 		item = AllocVec(sizeof(struct entry), MEMF_CLEAR);
+		// printf("[historyListSaveAs] Allocated %d at 0x%p\n", sizeof(struct entry), item);
 		STRPTR _line = AllocVec(sizeof(STRPTR)*HISTORY_LINE_LENGTH, MEMF_CLEAR);
+		// printf("[rexxsendkeys] Allocated %d at 0x%p\n", sizeof(STRPTR)*HISTORY_LINE_LENGTH, _line);
 		if (!_line)
 		{
 			jerror("[historyListSaveAs] Failed memory allocation!");
@@ -2898,14 +2991,13 @@ ULONG historyListSaveAs(struct IClass *cl, Object *obj)
 		FreeVec(_line); _line = NULL;
 		FreeVec(item); item = NULL;
 
-		// FIXME Va in crash se disalloco il puntatore al file ptr
-		// non va liberata la memoria?
+		// FIXME: crash if I deallocate ptr: shouldn't I?
 		// FreeVec(fp);
 
-		jwarning("[historyListSaveAs] Finished saving file");
+		jdebug("[historyListSaveAs] Finished saving file");
 	}
 	else
-		jwarning("[historyListSaveAs] Can't open file '%s'", file_path);
+		jdebug("[historyListSaveAs] Can't open file '%s'", file_path);
 
 	if (file_path)
 	{
@@ -2928,46 +3020,46 @@ ULONG mHandler(struct IClass *cl, Object *obj, struct MUIP_HandleEvent *msg)
 			switch(imsg->Code)
 			{
 				case RAWKEY_BACKSPACE:
-					jwarning("[mHandler] Will manage case 0x%x (RAWKEY_BACKSPACE)", imsg->Code);
+					jdebug("[mHandler] Will manage case 0x%x (RAWKEY_BACKSPACE)", imsg->Code);
 					DoMethod(obj, MUIM_clearOneChar);
 					return MUI_EventHandlerRC_Eat;
 
 				case RAWKEY_DELETE:
-					jwarning("[mHandler] Will manage case 0x%x (RAWKEY_DELETE)", imsg->Code);
+					jdebug("[mHandler] Will manage case 0x%x (RAWKEY_DELETE)", imsg->Code);
 					DoMethod(obj, MUIM_clearDisplay, DISPLAY_CA);
 					return MUI_EventHandlerRC_Eat;
 
 				case RAWKEY_KP_PLUS:
-					jwarning("[mHandler] Will manage case 0x%x (KP_PLUS)", imsg->Code);
+					jdebug("[mHandler] Will manage case 0x%x (KP_PLUS)", imsg->Code);
 					DoMethod(obj, MUIM_setOperator, EVT_BTN_PLUS);
 					return MUI_EventHandlerRC_Eat;
 
 				case RAWKEY_RETURN:
-					jwarning("[mHandler] Will manage case 0x%x (RAWKEY_RETURN)", imsg->Code);
+					jdebug("[mHandler] Will manage case 0x%x (RAWKEY_RETURN)", imsg->Code);
 			   		DoMethod(obj, MUIM_doCalc, TRUE);
 					return MUI_EventHandlerRC_Eat;
 
 				case RAWKEY_PERIOD:
 				case RAWKEY_KP_DECIMAL:
-					jwarning("[mHandler] Will manage case 0x%x (RAWKEY_PERIOD|RAWKEY_KP_DECIMAL)", imsg->Code);
+					jdebug("[mHandler] Will manage case 0x%x (RAWKEY_PERIOD|RAWKEY_KP_DECIMAL)", imsg->Code);
 			   		DoMethod(obj, MUIM_addDot);
 					return MUI_EventHandlerRC_Eat;
 
 				case RAWKEY_P:
-					jwarning("[mHandler] Will manage case 0x%x (RAWKEY_P)", imsg->Code);
+					jdebug("[mHandler] Will manage case 0x%x (RAWKEY_P)", imsg->Code);
 			   		DoMethod(obj, MUIM_addConstant, 'P');
 					return MUI_EventHandlerRC_Eat;
 			}
         }
         else if (imsg->Class == IDCMP_MOUSEBUTTONS)
         {
-        	jwarning("[mHandler] Mouse click with code=%d!", imsg->Code);
+        	jdebug("[mHandler] Mouse click with code=%d!", imsg->Code);
         }
         else
-        	jwarning("[mHandler] Event %d not managed", imsg->Code);
+        	jdebug("[mHandler] Event %d not managed", imsg->Code);
     }
     else
-    	jwarning("[mHandler] Could not get the imsg");
+    	jdebug("[mHandler] Could not get the imsg");
 
     return(DoSuperMethodA(cl, obj, (Msg)msg));
 }
@@ -3025,6 +3117,6 @@ DISPATCHER(jCalcDispatcher)
 
 struct MUI_CustomClass *initCalcClass(VOID)
 {
-	jwarning("class init");
+	jdebug("class init");
     return (struct MUI_CustomClass *) MUI_CreateCustomClass(NULL, (ClassID)MUIC_Group, NULL, sizeof(struct eData), ENTRY(jCalcDispatcher));
 }
