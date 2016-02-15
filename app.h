@@ -1,5 +1,5 @@
 #ifndef __APP_H__
-#define __APPH__
+#define __APP_H__
 
 #define VERSTAG		"\0$VER: jCalc 0.4 (06.10.2013)"
 #define VERSION		"0.4"

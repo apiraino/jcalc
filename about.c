@@ -10,6 +10,8 @@
 #include "build.h"
 #include "about.h"
 
+/* Hooks */
+
 HOOKPROTONHNP(aboutRemoveFunc, IPTR, Object *obj)
 {
     SetAttrs(obj, MUIA_About_Close, TRUE, TAG_DONE);
@@ -17,6 +19,11 @@ HOOKPROTONHNP(aboutRemoveFunc, IPTR, Object *obj)
 }
 MakeStaticHook(aboutRemoveHook, aboutRemoveFunc);
 
+/**
+    OM_NEW overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR aboutNew(struct IClass *cl,Object *obj,struct opSet *msg)
 {
     struct aboutData temp;
@@ -34,7 +41,7 @@ static IPTR aboutNew(struct IClass *cl,Object *obj,struct opSet *msg)
             Child, MUI_NewObject(MUIC_Group,
                 MUIA_Group_SameSize, TRUE,
                 MUIA_Group_Horiz, TRUE,
-                Child, HSpace(0),   
+                Child, HSpace(0),
                 Child, temp.okBut = MUI_MakeObject(MUIO_Button, (IPTR) "OK", TAG_DONE),
                 Child, HSpace(0),
             TAG_DONE),
@@ -63,7 +70,7 @@ static IPTR aboutNew(struct IClass *cl,Object *obj,struct opSet *msg)
                 MUIA_Background, MUII_SHINE,
 
                 Child, temp.logo,
-              
+
                 Child, MUI_NewObject(MUIC_Text,
                     MUIA_Background, MUII_SHINE,
                     MUIA_Text_Contents, aboutText,
@@ -104,6 +111,11 @@ static IPTR aboutNew(struct IClass *cl,Object *obj,struct opSet *msg)
     return (IPTR)obj;
 }
 
+/**
+    OM_GET overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR aboutGet(struct IClass *cl,Object *obj,struct opGet *msg)
 {
     struct aboutData *data = INST_DATA(cl, obj);
@@ -118,6 +130,11 @@ static IPTR aboutGet(struct IClass *cl,Object *obj,struct opGet *msg)
     return DoSuperMethodA(cl,obj,(Msg)msg);
 }
 
+/**
+    OM_SET overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR aboutSet(struct IClass *cl,Object *obj,struct opSet *msg)
 {
     struct aboutData *data = INST_DATA(cl,obj);
@@ -149,6 +166,7 @@ static IPTR aboutSet(struct IClass *cl,Object *obj,struct opSet *msg)
     return DoSuperMethodA(cl,obj,(Msg)msg);
 }
 
+/* My event dispatcher */
 DISPATCHER(aboutDispatcher)
 {
     switch (msg->MethodID)
@@ -161,6 +179,7 @@ DISPATCHER(aboutDispatcher)
     }
 }
 
+/* Create class instance */
 struct MUI_CustomClass *initAboutClass(void)
 {
     return (struct MUI_CustomClass *) MUI_CreateCustomClass(NULL, (ClassID)MUIC_Window, NULL, sizeof(struct aboutData), ENTRY(aboutDispatcher));

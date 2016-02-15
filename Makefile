@@ -1,19 +1,19 @@
 CC=$(AROS_BIN)/i386-aros-gcc
 # -D__REXXSYSLIB_STDLIBBASE__ is for having RexxSysBase of type Library (see proto/rexxsyslib.h)
-CFLAGS= -Wall -Wextra -D__AROS__ -m32 -fno-stack-protector -D__REXXSYSLIB_STDLIBBASE__ #-g
+CFLAGS= -Wall -Wextra -D__AROS__ -m32 -fno-stack-protector -D__REXXSYSLIB_STDLIBBASE__ -g
 LIBS=-lmui -llocale
 SRCDIR=src
 DOCS=../docs
 DSTDIR=../bin
 DISTDIR=/home/jman/Desktop
 RUNDIR=/home/jman/aros/jman
-RUNDIRDBG=/home/jman/aros/AROS-20130927-source/bin/linux-i386/AROS/jman
+RUNDBGDIR=/home/jman/aros/AROS-20160119-source/bin/linux-i386/AROS/jman
 
-OBJ	=	about.o	\
-		rexx.o \
-		display.o \
-		jcalc.o \
-		main.o
+OBJ =	about.o	\
+	rexx.o \
+	display.o \
+	jcalc.o \
+	main.o
 
 all: jcalc
 
@@ -40,7 +40,9 @@ update_build:
 jcalc: $(OBJ)
 	@rm -f $(DSTDIR)/$@ $(RUNDIR)/$@
 	@$(CC) $(CFLAGS) -o $(DSTDIR)/$@ $(OBJ) $(LIBS)
+	@cp $(DSTDIR)/$@ $(RUNDBGDIR)/jcalc
 	@cp $(DSTDIR)/$@ $(RUNDIR)/jcalc
+	@cp ../$@.info $(RUNDBGDIR)/$@.info
 	@cp ../$@.info $(RUNDIR)/$@.info
 
 pack: clean jcalc

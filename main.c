@@ -6,7 +6,7 @@
  *
  *  Copyright © 2012-2013, Antonio Piraino
  *  Distributed under the terms of the AROS Public License 1.1
- *	http://aros.sourceforge.net/license.html
+ *  http://aros.sourceforge.net/license.html
  *
  *  Desc: a simple calculator
  *  Language: English
@@ -27,7 +27,7 @@
 #define ENABLE_RT 0
 #include <aros/rt.h>
 
-// #define ENABLE_MEMDBG 0
+#define ENABLE_MEMDBG 0
 #include "includes/mem_debug.h"
 
 #include "app.h"
@@ -37,6 +37,9 @@
 
 #include <aros/debug.h>
 
+/**
+    Set comma according to locale settings
+**/
 static void getLocale(void)
 {
     struct Locale *loc;
@@ -50,6 +53,11 @@ static void getLocale(void)
     }
 }
 
+/**
+    Add a node to the input commands list
+    @param list Destination list
+    @param val the new line
+**/
 exit_t addNodeToList(struct inputList *list, STRPTR val)
 {
 	// jdebug("[addNodeToList] List starts @ 0x%p (-> 0x%p)", list, list->next);
@@ -79,6 +87,10 @@ exit_t addNodeToList(struct inputList *list, STRPTR val)
 	return EXIT_SUCCESS;
 }
 
+/**
+    Print the whole input commands file (for debug purposes)
+    @param list Command list received
+**/
 exit_t printList(struct inputList *list)
 {
 	struct inputList *l = list;
@@ -90,7 +102,12 @@ exit_t printList(struct inputList *list)
 	return EXIT_SUCCESS;
 }
 
-static exit_t parseInputFile(APTR *fp, struct inputList *inputFile)
+/**
+    Parse the input file, populate a command list
+    @param fp Input file pointer
+    @param inputFile Command list to be populated
+**/
+exit_t parseInputFile(APTR *fp, struct inputList *inputFile)
 {
 	int buf_len	= 127+1;
 	char buf[buf_len]; buf[0] = '\0';
@@ -126,6 +143,11 @@ static exit_t parseInputFile(APTR *fp, struct inputList *inputFile)
 	return EXIT_SUCCESS;
 }
 
+/**
+    Command string parser, returns the clean command
+    @param line Input command string
+    @param ret Output command
+**/
 exit_t parseCmdString (STRPTR line, STRPTR ret)
 {
     if (line)
@@ -221,6 +243,12 @@ exit_t parseCmdString (STRPTR line, STRPTR ret)
     return EXIT_SUCCESS;
 }
 
+/* Callbacks */
+
+/**
+    Open a window
+    @param data Pointer to parameter(s)
+**/
 HOOKPROTONHNO(hookVal, void, APTR *data)
 {
 	Object *win = *data;
@@ -238,10 +266,10 @@ int main(int argc, char const *argv[])
 {
 	t = FindTask(NULL);
 	t->tc_Node.ln_Name = "JCALC";
-	STRPTR tskName = (STRPTR)t->tc_Node.ln_Name;
 	struct RexxMsg *msg;
 
-	MEMDBG_start_tracing(TRUE);
+	// STRPTR tskName = (STRPTR)t->tc_Node.ln_Name;
+	// MEMDBG_start_tracing(TRUE);
 
 	// RT_Init();
 
@@ -279,32 +307,14 @@ int main(int argc, char const *argv[])
 
 #endif
 
-#if 0
-    portName = (STRPTR)"JCALC";
-    // struct Library *RexxSysBase;
-    // struct MsgPort *port;
-    RexxSysBase = OpenLibrary((STRPTR)"rexxsyslib.library", 0);
-    if (RexxSysBase == NULL)
-    {
-        jerror("Failed opening rexxsyslib.library\n");
-        fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"Failed opening rexxsyslib.library!\n");
-    }
-    port = CreatePort(portName, 1);
-    if (port == NULL)
-    {
-        CloseLibrary(RexxSysBase);
-        jerror("Failed creating AREXX port\n");
-        fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"Failed creating AREXX port!\n");
-    }
-    jdebug("AREXX port %s created, waiting for messages", (STRPTR)portName);
-#endif
-
+    /* Open AREXX port */
     if (EXIT_SUCCESS != openRexxLibPort())
     {
         jerror("Error opening muimaster rexxsyslib.library\n");
         fail((CONST_STRPTR)"jCalc", 101, (CONST_STRPTR)"Failed opening rexxsyslib.library!\n");
     }
 
+    /* parse command line args (if any) */
     if (argc != 1)
     {
     	int i;
@@ -348,10 +358,11 @@ int main(int argc, char const *argv[])
 	if (!(mcc = initCalcClass()))
 		jerror("Could not create Jcalc custom class.");
 
+	// Create GUI
 	app	= ApplicationObject,
 		MUIA_Application_RexxHook, &rexxHook, // 20130812 Not implemented yet in AROS
 
-		MUIA_Application_Menustrip, 
+		MUIA_Application_Menustrip,
 	        MenuitemObject,
 	        MUIA_Family_Child, MenuitemObject,
 	        MUIA_Menuitem_Title, "Project",
@@ -423,7 +434,7 @@ int main(int argc, char const *argv[])
 				MUIA_Menuitem_Shortcut, "O",
 				End,
 	        End,
-	           
+
 	    End, /* End MUIA_Application_Menustrip */
 
 		SubWindow, window = WindowObject,
@@ -455,6 +466,7 @@ int main(int argc, char const *argv[])
 		End, /* Close WindowObject */
 		End;
 
+	/* Create about window */
 	if(!(aboutClass = initAboutClass()))
 	{
 		jerror("Could not create About MCC object");
@@ -486,7 +498,7 @@ int main(int argc, char const *argv[])
 
 	/*
 		FIXME
-		
+
 		CHECK CAREFULLY WHAT I'M DOING HERE!
 		Shall I notify the attribute MUIA_Menuitem_Trigger OR MUIA_Menuitem_Checked???
 		If I check MUIA_Menuitem_Checked strange things happen: like the same event
@@ -614,7 +626,8 @@ int main(int argc, char const *argv[])
 		{
 			set(window, MUIA_Window_Open, TRUE);
 		}
-		
+
+		/* Opens the main window and start main application loop */
 		if (XGET(window, MUIA_Window_Open))
 		{
 			// 20130812 Had to revert to the older loop implementation
@@ -645,31 +658,6 @@ int main(int argc, char const *argv[])
                             ReplyMsg( (struct Message *) msg );
                             continue;
                         }
-
-                        // Calculate number of parameters
-                        // not needed anymore
-                        /*
-                	    int str_len = strlen((char *)msg->rm_Args[0]);
-					    char buf[str_len]; buf[0] = '\0';
-					    strncpy(buf, (char *)msg->rm_Args[0], str_len);
-					    buf[str_len] = '\0';
-                        char *tok = strtok(buf, " ");
-					    int num_params = 0;
-					    while(tok != NULL)
-					    {
-					    	tok = strtok(NULL, " ");
-					    	num_params++;
-					    }
-
-					    command = AllocVec(
-					        sizeof(struct ArexxCmdParams) + 	// memory for struct itself
-					        sizeof(STRPTR) +                	// memory for "command"
-					        sizeof(STRPTR) * (num_params),		// memory for flexible array (params)
-					        MEMF_CLEAR);							// num_params has an additional element
-					    										// (the command) which in theory can be removed
-					    										// Actually I will leave it there (set to NULL)
-					    										// and use it as the array terminator
-						*/
 
 					    command = AllocVec(
 					        sizeof(struct ArexxCmdParams) + 	// memory for struct itself
@@ -713,6 +701,7 @@ int main(int argc, char const *argv[])
             }
 		}
 
+		// Clean up everything
 		MUI_DisposeObject(app);
 		MUI_DeleteCustomClass(mcc);
         closeRexxLibPort();
@@ -724,8 +713,8 @@ int main(int argc, char const *argv[])
 
 	// RT_Exit();
 
-	MEMDBG_stop_tracing();
-	MEMDBG_report_tracing();
+	// MEMDBG_stop_tracing();
+	// MEMDBG_report_tracing();
 
 	return EXIT_SUCCESS;
 }

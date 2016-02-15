@@ -47,9 +47,12 @@ char char_operators[11] = {
 	'.',
 };
 
+/**
+	Remove the comma (if that's the last char)
+    @param str the number
+**/
 exit_t removeComma(STRPTR *str)
 {
-	// Removing the comma (if that's the last char)
 	int len = strlen((char *)*str) + 1;
 	char buf[len]; buf[0] = '\0';
 	snprintf(buf, len, "%s", *str);
@@ -62,6 +65,10 @@ exit_t removeComma(STRPTR *str)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Remove leading zeroes in a number
+    @param str the number
+**/
 exit_t removeLeadingZeroes(STRPTR *str)
 {
 	int len = strlen((char *)*str);
@@ -92,15 +99,17 @@ exit_t removeLeadingZeroes(STRPTR *str)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Set MAX_DECIMALS decimals for number
+    @param str the number
+**/
 exit_t max_decimals(STRPTR *str)
 {
 	return EXIT_SUCCESS;
 
 	/*
 		TODO
-
-		- set MAX_DECIMALS input
-		 (must not be higher than MAX_DISPLAY_FIGURES anyway)
+		(must not be higher than MAX_DISPLAY_FIGURES anyway)
 	*/
 
 	int len = strlen((char *)*str);
@@ -124,6 +133,10 @@ exit_t max_decimals(STRPTR *str)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Remove trailing zeroes from a number
+    @param str the number
+**/
 exit_t removeTrailingZeroes(STRPTR *str)
 {
 	// FIXME removeTrailingZeroes should only remove zeroes! Check the code
@@ -182,6 +195,10 @@ exit_t removeTrailingZeroes(STRPTR *str)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Convert back comma (if any) according to locale
+    @param str the number
+**/
 exit_t convertComma(STRPTR *str)
 {
 	// int len = strlen((char *)*str);
@@ -189,7 +206,6 @@ exit_t convertComma(STRPTR *str)
 	// b = strdup((char *)*str);
 	jdebug("[convertComma] Starting with %s (0x%p)", *str, *str);
 
-	// convert back comma (if any) according to locale
 	// 1 - check if a translation of the comma is required (by locale settings)
 		// 2 - check if any decimal is present
 			// 3 - do the translation '.' => ','
@@ -226,26 +242,12 @@ exit_t convertComma(STRPTR *str)
 	return EXIT_SUCCESS;
 }
 
-// exit_t addNodeToList(struct reel *l, FLOAT val, BYTE op)
-// {
-// 	// printf("[addNodeToList] History reel starts @0x%p (-> 0x%p)\n", l, l->next);
-// 	while (NULL != l->next)
-// 	{
-// 		l = l->next;
-// 	}
-// 	// printf("[addNodeToList] New position: 0x%p\n", l);
-
-// 	struct reel *nuovo = malloc(sizeof(struct reel));
-// 	nuovo->value = val;
-// 	nuovo->op = op;
-// 	l->next = nuovo;
-// 	nuovo->next	= NULL;
-
-// 	// printf("[addNodeToList] History reel now starts @0x%p (-> 0x%p)\n", l, l->next);
-
-// 	return EXIT_SUCCESS;
-// }
-
+/**
+	Convert BASE of the display
+    @param str the number
+    @param old_base the old base
+    @param new_base the new base
+**/
 exit_t convertDisplay(STRPTR *str, BYTE old_base, BYTE *new_base)
 {
 	/*
@@ -320,6 +322,10 @@ exit_t convertDisplay(STRPTR *str, BYTE old_base, BYTE *new_base)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Perform real calculation
+    @param myData calculation parameters (operators, numbers)
+**/
 exit_t doCalc(struct eData *myData)
 {
 	// FIXME why this doesn't get printed correctly??? Stupid D(bug()) macro.
@@ -349,6 +355,11 @@ exit_t doCalc(struct eData *myData)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Calculation interface
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doCalcWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doCalcMsg *msg)
 {
     struct eData *myData = INST_DATA(cl,obj);
@@ -576,6 +587,11 @@ BOOL getDisplay(STRPTR src, DOUBLE *dest, BYTE *base)
 	return EXIT_SUCCESS;
 }
 
+/**
+	Get the display content, convert according to current BASE
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doGetDisplayWrapper(struct IClass *cl UNUSED, Object *obj UNUSED, struct MUIP_JCALC_getDisplayMsg *msg)
 {
 	char c = 0;
@@ -627,6 +643,11 @@ static IPTR doGetDisplayWrapper(struct IClass *cl UNUSED, Object *obj UNUSED, st
 	return (IPTR) TRUE;
 }
 
+/**
+	Set display according to current BASE
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doSetDisplayWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_setDisplayMsg *msg)
 {
 	// FIXME doSetDisplayWrapper should be reorganized
@@ -776,6 +797,11 @@ static APTR MakeButton(UBYTE *Label, UBYTE Key)
 	}
 }
 
+/**
+	Add a number to the calc stack
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doAddNumber(struct IClass *cl, Object *obj, struct MUIP_JCALC_numberMsg *msg)
 {
 	struct eData *myData	= INST_DATA(cl,obj);
@@ -880,6 +906,11 @@ static IPTR doAddNumber(struct IClass *cl, Object *obj, struct MUIP_JCALC_number
 	return (IPTR) TRUE;
 }
 
+/**
+	Add a constant to the calc stack
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doAddConstant(struct IClass *cl, Object *obj, struct MUIP_JCALC_numberMsg *msg)
 {
 	struct eData *myData	= INST_DATA(cl, obj);
@@ -898,6 +929,11 @@ static IPTR doAddConstant(struct IClass *cl, Object *obj, struct MUIP_JCALC_numb
 	return (IPTR) TRUE;
 }
 
+/**
+	Operator interface
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMsg *msg)
 {
 	jdebug("[doOpWrapper]");
@@ -1188,6 +1224,11 @@ static IPTR doOpWrapper(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMs
 	return (IPTR) TRUE;
 }
 
+/**
+	Immediate operator interface
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doOpWrapperImmediate(struct IClass *cl, Object *obj, struct MUIP_JCALC_doOpMsg *msg)
 {
 	struct eData *myData	= INST_DATA(cl, obj);
@@ -1238,6 +1279,10 @@ static IPTR doOpWrapperImmediate(struct IClass *cl, Object *obj, struct MUIP_JCA
 	return (IPTR) TRUE;
 }
 
+/**
+	Add a dot
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR doAddDot(struct IClass *cl, Object *obj)
 {
 	struct eData *myData 	= INST_DATA(cl, obj);
@@ -1303,6 +1348,11 @@ static IPTR doAddDot(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Clear the display
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doClearDisplay(struct IClass *cl, Object *obj, struct MUIP_JCALC_ClearMsg *msg)
 {
 	struct eData *myData = INST_DATA(cl, obj);
@@ -1324,6 +1374,11 @@ static IPTR doClearDisplay(struct IClass *cl, Object *obj, struct MUIP_JCALC_Cle
 	return (IPTR) TRUE;
 }
 
+/**
+	Clear the rightmost char from the display
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doClearOneChar(struct IClass *cl, Object *obj)
 {
 	struct eData *myData = INST_DATA(cl, obj);
@@ -1362,6 +1417,10 @@ static IPTR doClearOneChar(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Save history reel
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR setSaveAs(struct IClass *cl, Object *obj)
 {
     // Have GCC just shut up!
@@ -1381,6 +1440,10 @@ static IPTR setSaveAs(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	History panel toggle
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR toggleHistoryPanel(struct IClass *cl, Object *obj)
 {
 	jdebug("[toggleHistoryPanel] [start] MUIA_JCALC_toggleHistoryPanel %d", (int)XGET(obj, MUIA_JCALC_toggleHistoryPanel));
@@ -1406,6 +1469,11 @@ static IPTR toggleHistoryPanel(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Set BASE
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR setBase(struct IClass *cl, Object *obj, struct MUIP_JCALC_setBaseMsg *msg)
 {
     struct eData *myData = INST_DATA(cl, obj);
@@ -1454,6 +1522,11 @@ static IPTR setBase(struct IClass *cl, Object *obj, struct MUIP_JCALC_setBaseMsg
 	return (IPTR) TRUE;	
 }
 
+/**
+	Set calculator MODE
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR setMode(struct IClass *cl, Object *obj, struct MUIP_JCALC_setModeMsg *msg)
 {
 	jdebug("setMode: %d", msg->mode);
@@ -1489,6 +1562,11 @@ static IPTR setMode(struct IClass *cl, Object *obj, struct MUIP_JCALC_setModeMsg
 	return (IPTR) TRUE;
 }
 
+/**
+	Generic group add/remove manager
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mManageGroup(struct IClass *cl, Object *obj, struct MUIP_JCALC_manageGroup *msg)
 {
 	jdebug("[mManageGroup] obj=0x%p parent=0x%p, child=0x%p", obj, msg->_mainGrp, msg->_subGrp);
@@ -1569,11 +1647,12 @@ static IPTR mManageGroup(struct IClass *cl, Object *obj, struct MUIP_JCALC_manag
 	return (IPTR) TRUE;
 }
 
-/* HOOKS (Private methods) */
-
+/**
+	Set calc BASE toi BIN
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR setBaseBin(struct IClass *cl, Object *obj)
 {
-	// switch the calculator base mode to BIN:
 	// - disable all the buttons I don't need: 2-9, a-f
 	// - set base mode to 2
 	// - convert the display
@@ -1642,9 +1721,12 @@ static IPTR setBaseBin(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Set calc BASE to DEC
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR setBaseDec(struct IClass *cl, Object *obj)
 {
-	// switch the calculator base mode to DEC
 	// disable all the buttons I don't need:
 	// a-f, set base mode to 10
 	struct eData *myData = INST_DATA(cl, obj);
@@ -1706,9 +1788,12 @@ static IPTR setBaseDec(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Set calc BASE to HEX
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR setBaseHex(struct IClass *cl, Object *obj)
 {
-	// switch the calculator base mode to HEX
 	// Enable all the buttons I need:
 	// 0-9, a-f, set base mode to 16
 	struct eData *myData	= INST_DATA(cl ,obj);
@@ -1762,9 +1847,13 @@ static IPTR setBaseHex(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Set calc BASE to OCT
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR setBaseOct(struct IClass *cl, Object *obj)
 {
-	// switch the calculator base mode to OCT
 	// disable all the buttons I don't need:
 	// 8-9, a-f, set base mode to 8
 	struct eData *myData	= INST_DATA(cl, obj);
@@ -1818,6 +1907,10 @@ static IPTR setBaseOct(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Change sign
+    @param [cl, obj] pointer to the class private data struct
+**/
 static IPTR changeSign(struct IClass *cl, Object *obj)
 {
 	struct eData *myData = INST_DATA(cl, obj);
@@ -1862,6 +1955,11 @@ static IPTR changeSign(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Calc memory management
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR memMgmt(struct IClass *cl, Object *obj, struct MUIP_JCALC_memMsg *msg)
 {
 	struct eData *myData	= INST_DATA(cl, obj);
@@ -1909,6 +2007,13 @@ static IPTR memMgmt(struct IClass *cl, Object *obj, struct MUIP_JCALC_memMsg *ms
 	return (IPTR) TRUE;
 }
 
+/* HOOKS (Private methods) */
+
+/**
+	Allocate for the list
+    @param entry new list entry
+    @param p new list content
+**/
 HOOKPROTONHNO(listConstructor, struct entry *, struct entry *p)
 {
 	// jwarning("[listConstructor] with str=0x%p", str);
@@ -1941,6 +2046,10 @@ HOOKPROTONHNO(listConstructor, struct entry *, struct entry *p)
 }
 MakeHook(listConstructorHook, listConstructor);
 
+/**
+	Destroy the list entry
+    @param entry list entry to be destroyed
+**/
 HOOKPROTONHNO(listDestructor, void, struct entry *e)
 {
 //	jwarning("[listDestructor]");
@@ -1961,6 +2070,11 @@ HOOKPROTONHNO(listDestructor, void, struct entry *e)
 }
 MakeHook(listDestructorHook, listDestructor);
 
+/**
+	Add an item to the list
+    @param array list items
+    @param e list entry
+**/
 HOOKPROTONH(listDisplay, void, STRPTR *array, struct entry *e)
 {
 // #warning CRASH! If any kind of print is invoked here. Any (printf, j*)
@@ -1989,7 +2103,6 @@ HOOKPROTONH(listDisplay, void, STRPTR *array, struct entry *e)
     strncat((char *)_line, (char *)e->line, strlen((char *)e->line));
 	*array = _line;
 	// FreeVec(_spacer);
-    /* fine troiajo */
 #endif
 
 	// jwarning("[listDisplay] Finished!");
@@ -2005,7 +2118,11 @@ IPTR DoSuperNew (struct IClass *cl, Object *obj, IPTR tag1, ...)
     AROS_SLOWSTACKTAGS_POST
 }
 
-/* OM_NEW */
+/**
+	OM_NEW overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
 {
 	jdebug("[mJcalc_New] Init");
@@ -2492,7 +2609,11 @@ static IPTR mJcalc_New (struct IClass *cl, Object *obj, struct opSet *msg)
 	return (IPTR)obj;
 }
 
-/* OM_SET */
+/**
+	OM_SET overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mJcalc_Set (struct IClass *cl, Object *obj, struct opSet *msg)
 {
     struct eData *data = INST_DATA(cl,obj);
@@ -2532,7 +2653,11 @@ static IPTR mJcalc_Set (struct IClass *cl, Object *obj, struct opSet *msg)
 	return DoSuperMethodA(cl,obj,(Msg)msg);
 }
 
-/* OM_GET */
+/**
+	OM_GET overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mJcalc_Get (struct IClass *cl, Object *obj, struct opGet *msg)
 {
 	struct eData *data = INST_DATA(cl, obj);
@@ -2555,7 +2680,11 @@ static IPTR mJcalc_Get (struct IClass *cl, Object *obj, struct opGet *msg)
 }
 
 
-/* MUIM_SETUP */
+/**
+	OM_SETUP overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mJcalc_Setup (struct IClass *cl, Object *obj, Msg msg)
 {
 	jdebug("[MUIM_SETUP]");
@@ -2577,7 +2706,11 @@ static IPTR mJcalc_Setup (struct IClass *cl, Object *obj, Msg msg)
 	return (IPTR)TRUE;
 }
 
-/* MUIM_CLEANUP */
+/**
+	OM_CLEANUP overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mJcalc_Cleanup(struct IClass *cl, Object * obj, Msg msg)
 {
 	jdebug("[MUIM_CLEANUP]");
@@ -2586,6 +2719,11 @@ static IPTR mJcalc_Cleanup(struct IClass *cl, Object * obj, Msg msg)
     return DoSuperMethodA(cl, obj, msg);
 }
 
+/**
+	OM_ASKMINMAX overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mJcalc_AskMinMax(struct IClass *cl UNUSED, Object * obj, struct MUIP_AskMinMax *msg)
 {
     // Have GCC just shut up!
@@ -2640,6 +2778,11 @@ static IPTR mJcalc_AskMinMax(struct IClass *cl UNUSED, Object * obj, struct MUIP
 // 	return ret;
 // }
 
+/**
+	Insert a new item in the history reel (interface)
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry *msg)
 {
 	// Don't print if the panel is closed
@@ -2762,6 +2905,11 @@ static IPTR mInsert(struct IClass *cl, Object *obj, struct MUIP_JCALC_ListEntry 
     return (IPTR) TRUE;
 }
 
+/**
+	Get the latest result from the display (interface)
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 static IPTR doGetLastResult(struct IClass *cl, Object *obj, struct MUIP_JCALC_AREXX_resultMsg *msg)
 {
 	struct eData *myData = INST_DATA(cl,obj);
@@ -2850,6 +2998,13 @@ HOOKPROTONH(AslRefreshFunc, void, struct FileRequester *req, struct IntuiMessage
 }
 MakeStaticHook(AslRefreshHook,AslRefreshFunc);
 
+/**
+	Create filename requester
+    @param win The window
+    @param title Window title
+    @param save Save flag
+    @param path Path to save file into
+**/
 STRPTR getFilename(Object *win, STRPTR title, BOOL save, STRPTR *path)
 {
     struct FileRequester *req = NULL;
@@ -2939,6 +3094,10 @@ STRPTR getFilename(Object *win, STRPTR title, BOOL save, STRPTR *path)
     return *path;
 }
 
+/**
+	Save history reel to file
+    @param [cl, obj] pointer to the class private data struct
+**/
 ULONG historyListSaveAs(struct IClass *cl, Object *obj)
 {
 	struct eData *myData = INST_DATA(cl, obj);
@@ -3007,6 +3166,10 @@ ULONG historyListSaveAs(struct IClass *cl, Object *obj)
 	return (IPTR) TRUE;
 }
 
+/**
+	Events handler
+    @param [cl, obj] pointer to the class private data struct
+**/
 ULONG mHandler(struct IClass *cl, Object *obj, struct MUIP_HandleEvent *msg)
 {
 	struct IntuiMessage *imsg;
@@ -3064,6 +3227,9 @@ ULONG mHandler(struct IClass *cl, Object *obj, struct MUIP_HandleEvent *msg)
     return(DoSuperMethodA(cl, obj, (Msg)msg));
 }
 
+/**
+	My event dispatcher
+**/
 DISPATCHER(jCalcDispatcher)
 {
 	switch(msg->MethodID)
@@ -3115,6 +3281,9 @@ DISPATCHER(jCalcDispatcher)
 	return DoSuperMethodA(cl, obj, msg);
 }
 
+/**
+	Create class instance
+**/
 struct MUI_CustomClass *initCalcClass(VOID)
 {
 	jdebug("class init");

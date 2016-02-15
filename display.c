@@ -35,7 +35,11 @@
 //     AROS_SLOWSTACKTAGS_POST
 // }
 
-///OM_NEW
+/**
+    OM_NEW overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 IPTR mNew(struct IClass *cl,Object *obj,struct opSet *msg)
 {
 	// Printf((STRPTR)"mNew\n");
@@ -74,6 +78,11 @@ IPTR mNew(struct IClass *cl,Object *obj,struct opSet *msg)
     return (IPTR)obj;
 }
 
+/**
+    OM_DISPOSE overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 IPTR CalcDisplay__OM_DISPOSE(struct IClass *cl, Object *obj, struct opSet *msg)
 {
     jdebug("[CalcDisplay__OM_DISPOSE]");
@@ -88,6 +97,11 @@ IPTR CalcDisplay__OM_DISPOSE(struct IClass *cl, Object *obj, struct opSet *msg)
     return DoSuperMethodA(cl, obj, (Msg)msg);
 }
 
+/**
+    OM_ASKMINMAX overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 IPTR mAskMinMax(struct IClass *cl, Object *obj, struct MUIP_AskMinMax *msg)
 {
     struct MyData *data = INST_DATA(cl, obj);
@@ -122,6 +136,11 @@ IPTR mAskMinMax(struct IClass *cl, Object *obj, struct MUIP_AskMinMax *msg)
     return TRUE;
 }
 
+/**
+    OM_DRAW overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 IPTR mDraw(struct IClass *cl, Object *obj, struct MUIP_Draw *msg)
 {
     struct MyData *data = INST_DATA(cl, obj);
@@ -196,101 +215,11 @@ IPTR mDraw(struct IClass *cl, Object *obj, struct MUIP_Draw *msg)
     return TRUE;
 }
 
-#if 0
-IPTR __CalcDisplay__OM_SET(struct IClass *cl, Object *obj, struct opSet *msg)
-{
-    struct MyData *data = INST_DATA(cl, obj);
-    struct TagItem      *tags = msg->ops_AttrList;
-    struct TagItem      *tag;
-    jdebug("[CalcDisplay__OM_SET] Entered");
-
-    while ((tag = NextTagItem((const struct TagItem **)&tags)) != NULL)
-    {
-        jdebug("[CalcDisplay__OM_SET] while... switching 0x%p", (void *)tag->ti_Tag);
-        switch (tag->ti_Tag)
-        {
-            // case MUIA_CalcDisplay_Calculated:
-            // {
-            //     jdebug("[CalcDisplay__OM_SET] tag->ti_Tag = MUIA_CalcDisplay_Calculated");
-            //     if (tag->ti_Data)
-            //     {
-            //         data->displ_flags |= CALCDISPFLAG_CALCULATED;
-            //     }
-            //     else
-            //     {
-            //         data->displ_flags &= ~CALCDISPFLAG_CALCULATED;
-            //     }
-            // }; break;
-
-            case MUIA_CalcDisplay_Input:
-            {
-                jdebug("[CalcDisplay__OM_SET] MUIA_CalcDisplay_Input tag->ti_Data = '%s'", (STRPTR)tag->ti_Data);
-                if ((tag->ti_Data >= (IPTR)'0') && (tag->ti_Data <= (IPTR)'9'))
-                {
-                    if ((data->disp_buff == NULL)) //  || (data->displ_flags & CALCDISPFLAG_CALCULATED))
-                    {
-                        // if (data->displ_flags & CALCDISPFLAG_CLEAROP)
-                        // {
-                        //     data->displ_flags &= ~CALCDISPFLAG_CLEAROP;
-                        //     data->displ_operator = CALCDISPOP_NONE;
-                        // }
-                        // data->displ_flags &= ~CALCDISPFLAG_HASPERIOD;
-                        if (data->disp_buff != data->disp_prev)
-                        {
-                            jdebug("[CalcDisplay__OM_SET] Freeing data->disp_buff");
-                            FreeVec(data->disp_buff); data->disp_buff = NULL;
-                        }
-                            
-                        data->disp_buff = AllocVec(2, MEMF_CLEAR);
-                        data->disp_buff[0]= (UBYTE)tag->ti_Data;
-                    }
-                    else
-                    {
-                        char *oldbuff = data->disp_buff;
-                        ULONG oldlen = strlen(oldbuff);
-                        if (oldlen < MUIV_CalcDisplay_MaxInputLen)
-                        {
-                            data->disp_buff = AllocVec(oldlen + 2, MEMF_CLEAR);
-                            CopyMem(oldbuff, data->disp_buff, oldlen);
-                            data->disp_buff[oldlen] = (UBYTE)tag->ti_Data;
-                            FreeVec(oldbuff); oldbuff = NULL;
-                        }
-                    }
-                    jdebug("[CalcDisplay__OM_SET] [A] Display set to: '%s' (0x%p)", data->disp_buff, data->disp_buff);
-                    // SET(obj, MUIA_CalcDisplay_Calculated, FALSE);
-                }
-                else
-                {
-                    jdebug("[CalcDisplay__OM_SET] tag->ti_Data is not 0~9: '%s'", (char *)tag->ti_Data);
-                    jdebug("[CalcDisplay__OM_SET] data->disp_buff is '%s' 0x%p", data->disp_buff, data->disp_buff);
-                    jdebug("[CalcDisplay__OM_SET] Need to fit '%s' (len=%d)", (char *)tag->ti_Data, strlen((char *)tag->ti_Data));
-
-                    data->disp_buff = AllocVec(2, MEMF_CLEAR);
-                    // data->disp_buff[0] = (UBYTE)tag->ti_Data;
-                    data->disp_buff = (char *)tag->ti_Data;
-                    // data->disp_buff = (UBYTE)tag->ti_Data;
-                    jdebug("[CalcDisplay__OM_SET] [B] Display set to: '%s' (0x%p)", data->disp_buff, data->disp_buff);
-                }
-                // data->disp_buff = (char *)tag->ti_Data;
-                jdebug("[CalcDisplay__OM_SET] [C] Display set to: '%s' (0x%p)", data->disp_buff, data->disp_buff);
-                MUI_Redraw(obj, MADF_DRAWOBJECT);
-            }; break;
-            
-            default:
-                jdebug("[CalcDisplay__OM_SET] SHOULD NEVER REACH THIS POINT!!!!1!ONE!");
-                jdebug("[CalcDisplay__OM_SET] tag->ti_Tag not managed (%p)", (void *)tag->ti_Tag);
-                // jdebug("[CalcDisplay__OM_SET] tag->ti_Tag = not managed (%lu) %s", tag->ti_Tag, (STRPTR)tag->ti_Data);
-                // data->disp_buff = (char *)tag->ti_Data;
-                jdebug("[CalcDisplay__OM_SET] [B] Will probably set display to: '%s'", data->disp_buff);
-                MUI_Redraw(obj, MADF_DRAWOBJECT);
-            break;
-        }
-    }
-
-    return DoSuperMethodA(cl, obj, (Msg)msg);
-}
-#endif
-
+/**
+    OM_SET overload
+    @param [cl, obj] pointer to the class private data struct
+    @param msg Message to the interface
+**/
 IPTR CalcDisplay__OM_SET(struct IClass *cl, Object *obj, struct opSet *msg)
 {
     struct MyData *data = INST_DATA(cl, obj);
@@ -365,7 +294,7 @@ IPTR CalcDisplay__OM_SET(struct IClass *cl, Object *obj, struct opSet *msg)
     return DoSuperMethodA(cl, obj, (Msg)msg);
 }
 
-///MyDispatcher
+// MyDispatcher
 DISPATCHER(MyDispatcher)
 {
 	// Printf((STRPTR)"Dispatcher: rcvd msg %d\n", msg->MethodID);
@@ -384,6 +313,9 @@ DISPATCHER(MyDispatcher)
 	return(DoSuperMethodA(cl,obj,msg));
 }
 
+/**
+    Create class instance
+**/
 struct MUI_CustomClass *initDisplayClass(VOID)
 {
      return (struct MUI_CustomClass *) MUI_CreateCustomClass(NULL, (ClassID)MUIC_Area, NULL, sizeof(struct MyData), MyDispatcher);

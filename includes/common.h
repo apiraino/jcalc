@@ -90,4 +90,3 @@ exit_t fail(CONST_STRPTR title, int code, CONST_STRPTR message);
 IPTR DoSuperNew(struct IClass *cl, Object *obj, IPTR tag1, ...);
 
 #endif /* COMMON_H_ */
-
