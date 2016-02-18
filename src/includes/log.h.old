@@ -1,0 +1,82 @@
+/*
+ * log.h
+ *
+ *  Created on: Apr 25, 2013
+ *      Author: jman
+ */
+
+#ifndef LOG_H_
+#define LOG_H_
+
+typedef enum
+{
+	J_NEVER				= -1,
+	J_CURRENT_LEVEL		= -1,
+	J_ALWAYS 			= 0,
+	J_NOTHING			= 0,
+	J_CONFIG,			/* Configuration errors */
+	J_ERROR,
+	J_WARNING,
+	J_CONNECT,			/* Connection/network errors */
+	J_INFO,				/* Informations */
+	J_VERBOSE,
+	J_DEBUG,
+	J_EXTRA_DEBUG,
+	J_EXTRA_DEBUG_1,
+	J_EXTRA_DEBUG_2,
+	J_EVERYTHING		/* 0x0F */
+} JLEVEL;
+
+#define	J_LEVEL		0x0F
+
+typedef enum	// dove indirizzare i log (tipicamente 40,20,10)
+{
+	J_USE_SYSLOG	= 0x10,	// log di sistema
+	J_USE_LOGFILE	= 0x20,	// un file su disco (da specificare)
+	J_USE_STDOUT	= 0x30,	// console di linux
+	J_USE_STDERR	= 0x40,	// error console
+	J_USE_DEVNULL	= 0x50,	// niente
+	J_USE_CONSOLE	= 0x60,	// console di windows
+} JDESTINATION;
+
+#define	J_DESTINATION	0x70	/* Power of 2 minus 1 */
+
+#if defined(JLOG)
+	exit_t jinit		(JLEVEL minlevel, JDESTINATION logmethod, CONST_STRPTR logtag);
+	exit_t jsetfile		(CONST_STRPTR file);
+	exit_t __jprintf		(char *, long, JLEVEL, const char *fmt, ...)		__attribute__ ((format (printf, 4, 5)));
+	#define jprintf(l, ...) __jprintf(__FILE__, __LINE__, l, __VA_ARGS__ )
+	exit_t jsetmode		(JDESTINATION newmode);
+	exit_t jsetlev		(JLEVEL newlevel);
+#else
+	/* placeholders */
+	#define	jinit(...)	EXIT_SUCCESS
+	#define jprintf(...)
+	#define jsetlev(...)
+	#define jsetfile(...)
+	/* unless this one */
+	// #define	jerror(...)	{fprintf(stderr, __VA_ARGS__);fputc('\n',stderr);}
+#endif
+
+#define jconfig(...)	jprintf(J_CONFIG, __VA_ARGS__)
+#define jerror(...)		jprintf(J_ERROR, __VA_ARGS__)
+#define jwarning(...)	jprintf(J_WARNING, __VA_ARGS__)
+#define jconnect(...)	jprintf(J_CONNECT, __VA_ARGS__)
+#define jinfo(...)		jprintf(J_INFO, __VA_ARGS__)
+#define jverbose(...)	jprintf(J_VERBOSE, __VA_ARGS__)
+#define jdebug(...)		jprintf(J_DEBUG, __VA_ARGS__)
+
+#define	NOEXIT		0x1000
+
+#define	J_MAX_COMPILED_LEVEL	(J_DEBUG + JLOG - 1)
+
+// doesn't print args
+//void _jprintf (const char *SourceFilename, int SourceLineno, const char *CFormatString, ...)
+//{
+//	printf("%s|%d|%s\n", SourceFilename, SourceLineno, CFormatString);
+//}
+//#define jwarning(...) _jprintf (__FILE__, __LINE__, __VA_ARGS__)
+
+//#define jwarning(...) { fprintf(stderr, "%s|", __FILE__); fprintf(stderr, "%d|", __LINE__); fprintf(stderr, __VA_ARGS__); fputc('\n',stderr); }
+
+#endif /* LOG_H_ */
