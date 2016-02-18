@@ -1,0 +1,29 @@
+CHANGELOG
+
+v0.3b185 (20130922):
+ADD Calc display as Rastport object (code borrowed from Nick Andrews)
+ADD Input file parsing
+ADD AREXX Port input
+
+v0.3b183 (20130619):
+FIX: the first [return] performs a calculation, updates history but not the display
+FIX: sometimes a double comma appears (e.g. 20.1 + .2)
+
+v0.3b181 (20130607)
+FIX some memory leaks (more to go)
+FIX automatically show latest inserted line
+
+v0.3b179 (20130604)
+FIX menu click on the same item (triggered an already existing mode)
+FIX GUI layout bug
+
+v0.3
+ADD Merged changes by kas1e for AOS4 compiling
+ADD Rewritten event handling, created MUI class
+ADD history panel
+
+v0.2
+ADD a few calc functions and shortcuts
+
+v0.1
+First public release

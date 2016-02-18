@@ -2,7 +2,17 @@
 
 ## This is a simple pocket calculator and it simply does what it says.
 
-A brief overview of the main features:
+### Requirements
+
+jCalc currently runs on AROS hosted/native or other AROS distributions such as Icaros (+2.0)
+
+### Download and compile
+
+- ``git clone https://github.com/apiraino/jcalc.git``
+- ``cd src``
+- ``make jcalc``
+
+### A brief overview of the main features:
 
 - Decimal, octal, binary, hexadecimal conversions
 - A couple of useful (?) math shortcuts for powers and square root
@@ -30,7 +40,7 @@ Feedback and bug reports:
 
 KNOWN BUGS/LIMITS:
 - Due to the actual limit of AROS 32bit build, I cannot allow input of more than 10 figures
-- Crashes randomly occur due to the above mentioned limit
+- Random crashes occur due to the above mentioned limit
 - This application eats memory (noticeable when running a batch of calculations): this is likely due to memory leaks outside jcalc.
 
 jCalc icon: courtesy of http://www.iconsea.com
