@@ -7,16 +7,16 @@
 
 int test(void)
 {
-	JLEVEL	i;
-	jinit(J_DEBUG, J_USE_STDERR, NULL);
-	for (i = J_ALWAYS; i <= J_EVERYTHING; i++)
-	{
-		jprintf(i, "logging a message with level %d", i);
-	}
+    JLEVEL i;
+    jinit(J_DEBUG, J_USE_STDERR, NULL);
+    for (i = J_ALWAYS; i <= J_EVERYTHING; i++)
+    {
+        jprintf(i, "logging a message with level %d", i);
+    }
 
-	jshutdown();
+    jshutdown();
 
-	return 0;
+    return 0;
 }
 
 int main(VOID)
@@ -29,21 +29,21 @@ int main(VOID)
     // test();
 
     if (EXIT_SUCCESS != jinit(J_DEBUG, J_USE_LOGFILE, logfile))
-	{
-		fail((CONST_STRPTR)"Err", 101, (CONST_STRPTR)"jinit failed, aborting");
-	}
+    {
+        fail((CONST_STRPTR)"Err", 101, (CONST_STRPTR)"jinit failed, aborting");
+    }
 
-	jconfig("[CONFIG] Config error ...");
+    jconfig("[CONFIG] Config error ...");
     jerror("[ERROR] Error message ...");
     jwarning("[WARNING] Warning you about %s and %f or %d", src, dst, op);
-	jconnect("[CONNECT] Connection error");
-	jinfo("[INFO] Info message");
-	jverbose("[VERBOSE] Verbose output");
-	jdebug("[DEBUG] Debug too");
+    jconnect("[CONNECT] Connection error");
+    jinfo("[INFO] Info message");
+    jverbose("[VERBOSE] Verbose output");
+    jdebug("[DEBUG] Debug too");
 
-	jshutdown();
+    jshutdown();
 
-	printf("end.\n");
+    printf("end.\n");
 
     return EXIT_SUCCESS;
 }

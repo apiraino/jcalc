@@ -159,7 +159,7 @@ exit_t ValidateArexxCmdParams(STRPTR _string, struct ArexxCmdParams *_amp)
     @param _amp AREXX command to be printed
 **/
 exit_t PrintArexxCmdParams(struct ArexxCmdParams *amp)
-{   
+{
     // jdebug("[AREXX] Array len %d", sizeof(amp->params) / sizeof(STRPTR));
     if (amp)
     {

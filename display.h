@@ -10,14 +10,14 @@
 
 enum
 {
-	CALCDISPOP_NONE = 0,
-	CALCDISPOP_ADD,
-	CALCDISPOP_SUB,
-	CALCDISPOP_MUL,
-	CALCDISPOP_DIV
+    CALCDISPOP_NONE = 0,
+    CALCDISPOP_ADD,
+    CALCDISPOP_SUB,
+    CALCDISPOP_MUL,
+    CALCDISPOP_DIV
 };
 
-#define MUIA_CalcDisplay_Input          0x80088008
+#define MUIA_CalcDisplay_Input             0x80088008
 // #define MUIA_CalcDisplay_Calculated     0x80088009
 // #define MUIM_CalcDisplay_DoCurrentStep  0x80088008
 // #define MUIA_CalcDisplay_Base           0x8008800A

@@ -42,7 +42,7 @@
 **/
 IPTR mNew(struct IClass *cl,Object *obj,struct opSet *msg)
 {
-	// Printf((STRPTR)"mNew\n");
+    // Printf((STRPTR)"mNew\n");
     struct MyData *data = NULL;
 
     obj = (Object *)DoSuperNewTags(cl, obj, NULL,
@@ -53,7 +53,7 @@ IPTR mNew(struct IClass *cl,Object *obj,struct opSet *msg)
     {
         return FALSE;
     }
-   
+
     data = INST_DATA(cl, obj);
 
     data->disp_textattr.ta_Name = (STRPTR)"aroscalculatorregular.font";
@@ -227,7 +227,7 @@ IPTR CalcDisplay__OM_SET(struct IClass *cl, Object *obj, struct opSet *msg)
     struct TagItem      *tag;
     jdebug("[CalcDisplay__OM_SET] Entered");
 
-    while ((tag = NextTagItem((const struct TagItem **)&tags)) != NULL)
+    while ((tag = NextTagItem((TAGITEM)&tags)) != NULL)
     {
         jdebug("[CalcDisplay__OM_SET] while... switching 0x%p", (void *)tag->ti_Tag);
         switch (tag->ti_Tag)
@@ -279,7 +279,7 @@ IPTR CalcDisplay__OM_SET(struct IClass *cl, Object *obj, struct opSet *msg)
 
                 MUI_Redraw(obj, MADF_DRAWOBJECT);
             }; break;
-            
+
             default:
                 // This happens when the history panel is opened/closed
                 jdebug("[CalcDisplay__OM_SET] tag->ti_Tag not managed (%p)", (void *)tag->ti_Tag);
@@ -297,20 +297,20 @@ IPTR CalcDisplay__OM_SET(struct IClass *cl, Object *obj, struct opSet *msg)
 // MyDispatcher
 DISPATCHER(MyDispatcher)
 {
-	// Printf((STRPTR)"Dispatcher: rcvd msg %d\n", msg->MethodID);
-	switch (msg->MethodID)
-	{
-        case OM_NEW:            return mNew(cl, obj, (struct opSet *)msg);
-        case OM_SET:            return CalcDisplay__OM_SET(cl, obj, (struct opSet *)msg);
+    // Printf((STRPTR)"Dispatcher: rcvd msg %d\n", msg->MethodID);
+    switch (msg->MethodID)
+    {
+    case OM_NEW:            return mNew(cl, obj, (struct opSet *)msg);
+    case OM_SET:            return CalcDisplay__OM_SET(cl, obj, (struct opSet *)msg);
 
-        case MUIM_Draw:         return mDraw(cl, obj, (struct MUIP_Draw *)msg);
+    case MUIM_Draw:         return mDraw(cl, obj, (struct MUIP_Draw *)msg);
 
-        case MUIM_AskMinMax:    return mAskMinMax(cl, obj, (struct MUIP_AskMinMax *)msg);
+    case MUIM_AskMinMax:    return mAskMinMax(cl, obj, (struct MUIP_AskMinMax *)msg);
 
-        case OM_DISPOSE:        return CalcDisplay__OM_DISPOSE(cl, obj, (APTR)msg);
+    case OM_DISPOSE:        return CalcDisplay__OM_DISPOSE(cl, obj, (APTR)msg);
 
-	}
-	return(DoSuperMethodA(cl,obj,msg));
+    }
+    return(DoSuperMethodA(cl,obj,msg));
 }
 
 /**
