@@ -34,10 +34,6 @@ Shortcuts available:
 - `DEL` to "Clear All"
 - `Backspace`
 
-Feedback and bug reports:
-- aros-exec.org (user `jman`)
-- mailto: jman at storiepvtride dot it
-
 KNOWN BUGS/LIMITS:
 - Due to the actual limit of AROS 32bit build, I cannot allow input of more than 10 figures
 - Random crashes occur due to the above mentioned limit
